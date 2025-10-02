@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'login_page.dart'; // Tu login existente
+import 'login_page.dart';
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});
@@ -80,7 +80,7 @@ class _WelcomePageState extends State<WelcomePage>
   Widget _shineButton({
     required String text,
     required Gradient gradient,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
     Color textColor = Colors.white,
   }) {
     return Padding(
@@ -93,12 +93,12 @@ class _WelcomePageState extends State<WelcomePage>
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: gradient.colors.last.withOpacity(0.5),
+                color: gradient.colors.last.withAlpha(128),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
               BoxShadow(
-                color: gradient.colors.first.withOpacity(0.2),
+                color: gradient.colors.first.withAlpha(51),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -144,9 +144,9 @@ class _WelcomePageState extends State<WelcomePage>
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            Colors.white.withOpacity(0.0),
-                            Colors.white.withOpacity(0.15),
-                            Colors.white.withOpacity(0.0),
+                            const Color.fromARGB(0, 255, 255, 255),
+                            const Color.fromARGB(38, 255, 255, 255),
+                            const Color.fromARGB(0, 255, 255, 255),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,

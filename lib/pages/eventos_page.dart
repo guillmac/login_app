@@ -65,6 +65,12 @@ class _EventosPageState extends State<EventosPage> {
                   fontSize: 18,
                 ),
               ),
+              initiallyExpanded: expandedMonths[mes]!,
+              onExpansionChanged: (expanded) {
+                setState(() {
+                  expandedMonths[mes] = expanded;
+                });
+              },
               children: eventosPorMes[mes]!
                   .map(
                     (evento) => ListTile(
@@ -86,12 +92,6 @@ class _EventosPageState extends State<EventosPage> {
                     ),
                   )
                   .toList(),
-              initiallyExpanded: expandedMonths[mes]!,
-              onExpansionChanged: (expanded) {
-                setState(() {
-                  expandedMonths[mes] = expanded;
-                });
-              },
             ),
           );
         }).toList(),

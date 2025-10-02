@@ -1,29 +1,23 @@
 import 'package:flutter/material.dart';
-import 'pages/welcome_page.dart';
-import 'pages/home_page.dart';
-import 'utils/session_manager.dart';
+import 'pages/welcome_page.dart'; // Importa WelcomePage
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final user = await SessionManager.getUser(); // Cargar usuario guardado
-  runApp(MyApp(initialUser: user));
+void main() {
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  final Map<String, dynamic>? initialUser;
-
-  const MyApp({super.key, this.initialUser});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
       title: 'Club France',
-      theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Montserrat'),
-      home: initialUser != null
-          ? HomePage(user: initialUser!)
-          : const WelcomePage(),
-      routes: {'/welcome': (_) => const WelcomePage()},
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        fontFamily: 'Montserrat', // Agregué esta línea para consistencia
+      ),
+      home: const WelcomePage(), // Cambiado de LoginPage a WelcomePage
     );
   }
 }

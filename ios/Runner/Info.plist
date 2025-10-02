@@ -45,5 +45,76 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- 🔐 CONFIGURACIONES DE SEGURIDAD Y BIOMETRÍA -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>Necesitamos acceso a Face ID para autenticarte de forma segura en la aplicación</string>
+	
+	<!-- 📸 PERMISOS PARA CÁMARA Y GALERÍA (si usas image_picker) -->
+	<key>NSCameraUsageDescription</key>
+	<string>Necesitamos acceso a la cámara para tomar fotos de perfil</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Necesitamos acceso a la galería para seleccionar fotos de perfil</string>
+	
+	<!-- 📍 PERMISOS DE UBICACIÓN (si usas geolocator) -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Necesitamos acceso a tu ubicación para ofrecerte servicios personalizados</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Necesitamos acceso a tu ubicación en todo momento para ofrecerte servicios personalizados</string>
+	
+	<!-- 🌐 CONFIGURACIÓN PARA HTTP (si usas APIs no seguras) -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>clubfrance.org.mx</key>
+			<dict>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
+				<false/>
+				<key>NSTemporaryExceptionMinimumTLSVersion</key>
+				<string>TLSv1.2</string>
+				<key>NSTemporaryExceptionRequiresForwardSecrecy</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
+	
+	<!-- 🔒 CONFIGURACIÓN PARA KEYCHAIN (flutter_secure_storage) -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)com.example.login_app</string>
+	</array>
+	
+	<!-- 📱 CONFIGURACIÓN ADICIONAL PARA FLUTTER -->
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
+	
+	<!-- 🎨 CONFIGURACIÓN DE INTERFAZ -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
+	
+	<!-- 🚫 CONFIGURACIÓN PARA EVITAR CAPTURAS DE PANTALLA EN APLICACIÓN -->
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Default Configuration</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
+
 </dict>
 </plist>

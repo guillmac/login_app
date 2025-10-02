@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'reserva_page.dart';
+import 'pago_page.dart';
 
 class ActividadesPage extends StatelessWidget {
   const ActividadesPage({super.key});
@@ -19,7 +21,10 @@ class ActividadesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(title: const Text("Actividades")),
+      appBar: AppBar(
+        title: const Text("Actividades"),
+        backgroundColor: Colors.black87,
+      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -37,13 +42,10 @@ class ActividadesPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-
             // Actividades Deportivas
             _sectionTitle("Deportivas"),
             ...deportivas.map((act) => _activityCard(context, act)),
-
             const SizedBox(height: 20),
-
             // Actividades Culturales
             _sectionTitle("Culturales"),
             ...culturales.map((act) => _activityCard(context, act)),
@@ -129,9 +131,9 @@ class ActividadesPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            Text(
+            const Text(
               "Horarios: Lunes a Viernes 8:00-20:00",
-              style: const TextStyle(color: Colors.white70),
+              style: TextStyle(color: Colors.white70),
             ),
           ],
         ),
