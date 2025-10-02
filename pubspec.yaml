@@ -1,0 +1,63 @@
+name: login_app
+description: "App de login para Club France"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.8.1 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Carousel de imágenes
+  carousel_slider: ^5.0.0
+
+  # Selección de imágenes
+  image_picker: ^0.8.7+5
+
+  # Almacenamiento local para sesión y datos
+  shared_preferences: ^2.1.1
+
+  # Iconos de Cupertino
+  cupertino_icons: ^1.0.8
+
+  # Peticiones HTTP al backend
+  http: ^1.1.0
+
+  # Logging estructurado en producción (opcional)
+  logging: ^1.1.0
+
+  # Geolocalización
+  geolocator: ^14.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+  # Para generar íconos de la app
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+
+  # 📂 Assets
+  assets:
+    - assets/images/
+    - assets/images/android-chrome-512x512.png
+
+  # 🔤 Fonts
+  fonts:
+    - family: Montserrat
+      fonts:
+        - asset: assets/fonts/Montserrat-Regular.ttf
+        - asset: assets/fonts/Montserrat-Bold.ttf
+          weight: 700
+
+# 🔹 Configuración del ícono de la app
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/android-chrome-512x512.png"
