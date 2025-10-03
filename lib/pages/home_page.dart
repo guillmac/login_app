@@ -4,6 +4,8 @@ import 'payments_page.dart';
 import '../utils/session_manager.dart';
 import 'welcome_page.dart';
 import 'settings_page.dart';
+import 'sports_activities_page.dart'; // Importación agregada
+import 'cultural_activities_page.dart'; // Agregar esta importación
 
 class HomePage extends StatelessWidget {
   final Map<String, dynamic> user;
@@ -110,7 +112,7 @@ class HomePage extends StatelessWidget {
               Icons.sports_soccer,
               () => _navigateToPage(
                 context,
-                _PlaceholderPage(title: "Actividades Deportivas"),
+                const SportsActivitiesPage(), // ✅ CORREGIDO - página real
               ),
             ),
             _buildSectionButton(
@@ -119,7 +121,7 @@ class HomePage extends StatelessWidget {
               Icons.music_note,
               () => _navigateToPage(
                 context,
-                _PlaceholderPage(title: "Actividades Culturales"),
+                const CulturalActivitiesPage(), // Cambiar a página real
               ),
             ),
             _buildSectionButton(

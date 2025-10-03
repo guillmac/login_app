@@ -399,7 +399,7 @@ class _SettingsPageState extends State<SettingsPage> {
         trailing: Switch(
           value: value,
           onChanged: enabled ? onChanged : null,
-          activeColor: const Color.fromRGBO(25, 118, 210, 1),
+          activeThumbColor: const Color.fromRGBO(25, 118, 210, 1),
         ),
         enabled: enabled,
       ),
