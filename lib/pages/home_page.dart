@@ -14,6 +14,10 @@ class HomePage extends StatelessWidget {
 
   Future<void> _logout(BuildContext context) async {
     await SessionManager.logout();
+    
+    // Check if the widget is still mounted before using context
+    if (!context.mounted) return;
+    
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => const WelcomePage()),
       (Route<dynamic> route) => false,
@@ -193,7 +197,7 @@ class HomePage extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05), // Fixed here
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),

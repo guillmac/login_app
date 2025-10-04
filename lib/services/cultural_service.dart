@@ -1,6 +1,7 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/cultural_activity.dart';
+import 'package:flutter/foundation.dart';
 
 class CulturalService {
   static const String baseUrl = 'https://clubfrance.org.mx';
@@ -8,8 +9,10 @@ class CulturalService {
 
   static Future<List<CulturalActivity>> getActividadesCulturales() async {
     try {
-      print('🎭 === INICIANDO CARGA ACTIVIDADES CULTURALES ===');
-      print('🎭 Conectando a: $mainEndpoint');
+      if (kDebugMode) {
+        debugPrint('🎭 === INICIANDO CARGA ACTIVIDADES CULTURALES ===');
+        debugPrint('🎭 Conectando a: $mainEndpoint');
+      }
       
       final response = await http.get(
         Uri.parse(mainEndpoint),
@@ -19,55 +22,63 @@ class CulturalService {
         },
       ).timeout(const Duration(seconds: 15));
 
-      print('🎭 Status Code: ${response.statusCode}');
+      if (kDebugMode) {
+        debugPrint('🎭 Status Code: ${response.statusCode}');
+      }
       
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(utf8.decode(response.bodyBytes));
         
-        print('🎭 ✅ Conexión exitosa con el servidor');
-        print('🎭 📊 Total de actividades: ${jsonResponse['total']}');
-        print('🎭 📋 Success: ${jsonResponse['success']}');
+        if (kDebugMode) {
+          debugPrint('🎭 ✅ Conexión exitosa con el servidor');
+          debugPrint('🎭 📊 Total de actividades: ${jsonResponse['total']}');
+          debugPrint('🎭 📋 Success: ${jsonResponse['success']}');
+        }
         
         if (jsonResponse['success'] == true) {
           final List<dynamic> data = jsonResponse['data'];
-          print('🎭 🎯 Número de actividades culturales en data: ${data.length}');
+          if (kDebugMode) {
+            debugPrint('🎭 🎯 Número de actividades culturales en data: ${data.length}');
+          }
           
           // Debug: mostrar información detallada del primer elemento
-          if (data.isNotEmpty) {
+          if (data.isNotEmpty && kDebugMode) {
             final primerElemento = data[0];
-            print('🎭 🔍 Primer elemento cultural del JSON:');
-            print('🎭    ID: ${primerElemento['id']}');
-            print('🎭    Nombre: ${primerElemento['nombre_actividad']}');
-            print('🎭    Categoría: ${primerElemento['categoria']}');
-            print('🎭    Lugar: ${primerElemento['lugar']}');
-            print('🎭    Profesor: ${primerElemento['profesor']}');
-            print('🎭    Status: ${primerElemento['status']}');
+            debugPrint('🎭 🔍 Primer elemento cultural del JSON:');
+            debugPrint('🎭    ID: ${primerElemento['id']}');
+            debugPrint('🎭    Nombre: ${primerElemento['nombre_actividad']}');
+            debugPrint('🎭    Categoría: ${primerElemento['categoria']}');
+            debugPrint('🎭    Lugar: ${primerElemento['lugar']}');
+            debugPrint('🎭    Profesor: ${primerElemento['profesor']}');
+            debugPrint('🎭    Status: ${primerElemento['status']}');
             
             // Mostrar información de días del primer elemento
-            print('🎭    Días encontrados (dia1-dia7):');
+            debugPrint('🎭    Días encontrados (dia1-dia7):');
             for (int i = 1; i <= 7; i++) {
               final dia = primerElemento['dia$i']?.toString();
-              print('🎭      dia$i: "$dia"');
+              debugPrint('🎭      dia$i: "$dia"');
             }
             
             // Mostrar información de horarios del primer elemento
-            print('🎭    Horarios encontrados:');
+            debugPrint('🎭    Horarios encontrados:');
             for (int i = 1; i <= 5; i++) {
               final horario = primerElemento['horario_grupo$i']?.toString();
               if (horario != null && horario.isNotEmpty && horario != 'null') {
-                print('🎭      horario_grupo$i: "$horario"');
+                debugPrint('🎭      horario_grupo$i: "$horario"');
               }
             }
-          } else {
-            print('🎭 ⚠️  No hay actividades culturales en la base de datos');
+          } else if (kDebugMode) {
+            debugPrint('🎭 ⚠️  No hay actividades culturales en la base de datos');
           }
           
           final actividades = data.map((json) {
             try {
               return CulturalActivity.fromJson(json);
             } catch (e) {
-              print('🎭 ❌ Error parseando actividad cultural: $e');
-              print('🎭    JSON problemático: $json');
+              if (kDebugMode) {
+                debugPrint('🎭 ❌ Error parseando actividad cultural: $e');
+                debugPrint('🎭    JSON problemático: $json');
+              }
               // Retornar una actividad por defecto en caso de error
               return CulturalActivity(
                 id: 0,
@@ -91,44 +102,52 @@ class CulturalService {
           final actividadesValidas = actividades.where((a) => a.id != 0).toList();
           
           // Log para debugging de días
-          print('🎭 📅 RESUMEN DE ACTIVIDADES CULTURALES:');
-          for (int i = 0; i < actividadesValidas.length && i < 3; i++) {
-            final actividad = actividadesValidas[i];
-            print('🎭    ${i + 1}. ${actividad.nombreActividad}');
-            print('🎭       - Categoría: ${actividad.categoria}');
-            print('🎭       - Días procesados: ${actividad.diasSemana}');
-            print('🎭       - Días formateados: "${actividad.diasFormateados}"');
-            print('🎭       - Horarios: ${actividad.horarios}');
-            print('🎭       - Tiene días: ${actividad.tieneDias}');
-            print('🎭       - Tiene horarios: ${actividad.tieneHorarios}');
+          if (kDebugMode) {
+            debugPrint('🎭 📅 RESUMEN DE ACTIVIDADES CULTURALES:');
+            for (int i = 0; i < actividadesValidas.length && i < 3; i++) {
+              final actividad = actividadesValidas[i];
+              debugPrint('🎭    ${i + 1}. ${actividad.nombreActividad}');
+              debugPrint('🎭       - Categoría: ${actividad.categoria}');
+              debugPrint('🎭       - Días procesados: ${actividad.diasSemana}');
+              debugPrint('🎭       - Días formateados: "${actividad.diasFormateados}"');
+              debugPrint('🎭       - Horarios: ${actividad.horarios}');
+              debugPrint('🎭       - Tiene días: ${actividad.tieneDias}');
+              debugPrint('🎭       - Tiene horarios: ${actividad.tieneHorarios}');
+            }
+            
+            // Estadísticas
+            final infantiles = actividadesValidas.where((a) => a.isInfantil).length;
+            final adultos = actividadesValidas.where((a) => a.isAdulto).length;
+            final conDias = actividadesValidas.where((a) => a.tieneDias).length;
+            final conHorarios = actividadesValidas.where((a) => a.tieneHorarios).length;
+            
+            debugPrint('🎭 📊 ESTADÍSTICAS CULTURALES:');
+            debugPrint('🎭    👶 Infantiles: $infantiles');
+            debugPrint('🎭    👨 Adultos: $adultos');
+            debugPrint('🎭    📅 Con días: $conDias');
+            debugPrint('🎭    ⏰ Con horarios: $conHorarios');
+            debugPrint('🎭    🎯 Total cargadas: ${actividadesValidas.length}');
+            debugPrint('🎭 === CARGA CULTURAL COMPLETADA ===');
           }
-          
-          // Estadísticas
-          final infantiles = actividadesValidas.where((a) => a.isInfantil).length;
-          final adultos = actividadesValidas.where((a) => a.isAdulto).length;
-          final conDias = actividadesValidas.where((a) => a.tieneDias).length;
-          final conHorarios = actividadesValidas.where((a) => a.tieneHorarios).length;
-          
-          print('🎭 📊 ESTADÍSTICAS CULTURALES:');
-          print('🎭    👶 Infantiles: $infantiles');
-          print('🎭    👨 Adultos: $adultos');
-          print('🎭    📅 Con días: $conDias');
-          print('🎭    ⏰ Con horarios: $conHorarios');
-          print('🎭    🎯 Total cargadas: ${actividadesValidas.length}');
-          print('🎭 === CARGA CULTURAL COMPLETADA ===');
           
           return actividadesValidas;
         } else {
-          print('🎭 ❌ Error del servidor: ${jsonResponse['error']}');
+          if (kDebugMode) {
+            debugPrint('🎭 ❌ Error del servidor: ${jsonResponse['error']}');
+          }
           throw Exception('Error del servidor: ${jsonResponse['error']}');
         }
       } else {
-        print('🎭 ❌ Error HTTP: ${response.statusCode}');
+        if (kDebugMode) {
+          debugPrint('🎭 ❌ Error HTTP: ${response.statusCode}');
+        }
         throw Exception('Error HTTP: ${response.statusCode}');
       }
     } catch (e) {
-      print('🎭 ❌ Error crítico conectando al servidor: $e');
-      print('🎭 🔄 Usando datos de ejemplo culturales...');
+      if (kDebugMode) {
+        debugPrint('🎭 ❌ Error crítico conectando al servidor: $e');
+        debugPrint('🎭 🔄 Usando datos de ejemplo culturales...');
+      }
       return await _getDatosEjemplo();
     }
   }
@@ -136,7 +155,9 @@ class CulturalService {
   static Future<List<CulturalActivity>> _getDatosEjemplo() async {
     await Future.delayed(const Duration(seconds: 1));
     
-    print('🎭 🎨 Cargando datos de ejemplo culturales...');
+    if (kDebugMode) {
+      debugPrint('🎭 🎨 Cargando datos de ejemplo culturales...');
+    }
     
     return [
       CulturalActivity(

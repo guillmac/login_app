@@ -1,6 +1,7 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/sport_activity.dart';
+import 'package:flutter/foundation.dart';
 
 class SportService {
   static const String baseUrl = 'https://clubfrance.org.mx';
@@ -8,7 +9,9 @@ class SportService {
 
   static Future<List<SportActivity>> getActividadesDeportivas() async {
     try {
-      print('🚀 Conectando a: $mainEndpoint');
+      if (kDebugMode) {
+        debugPrint('🚀 Conectando a: $mainEndpoint');
+      }
       
       final response = await http.get(
         Uri.parse(mainEndpoint),
@@ -18,32 +21,38 @@ class SportService {
         },
       ).timeout(const Duration(seconds: 15));
 
-      print('📡 Status Code: ${response.statusCode}');
+      if (kDebugMode) {
+        debugPrint('📡 Status Code: ${response.statusCode}');
+      }
       
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(utf8.decode(response.bodyBytes));
         
-        print('✅ Conexión exitosa con el servidor');
-        print('📊 Total de actividades: ${jsonResponse['total']}');
-        print('📋 Success: ${jsonResponse['success']}');
+        if (kDebugMode) {
+          debugPrint('✅ Conexión exitosa con el servidor');
+          debugPrint('📊 Total de actividades: ${jsonResponse['total']}');
+          debugPrint('📋 Success: ${jsonResponse['success']}');
+        }
         
         if (jsonResponse['success'] == true) {
           final List<dynamic> data = jsonResponse['data'];
-          print('🎯 Número de actividades en data: ${data.length}');
+          if (kDebugMode) {
+            debugPrint('🎯 Número de actividades en data: ${data.length}');
+          }
           
           // Debug: mostrar información del primer elemento
-          if (data.isNotEmpty) {
+          if (data.isNotEmpty && kDebugMode) {
             final primerElemento = data[0];
-            print('🔍 Primer elemento del JSON:');
-            print('   ID: ${primerElemento['id']}');
-            print('   Nombre: ${primerElemento['nombre_actividad']}');
-            print('   Categoría: ${primerElemento['categoria']}');
+            debugPrint('🔍 Primer elemento del JSON:');
+            debugPrint('   ID: ${primerElemento['id']}');
+            debugPrint('   Nombre: ${primerElemento['nombre_actividad']}');
+            debugPrint('   Categoría: ${primerElemento['categoria']}');
             
             // Mostrar información de días del primer elemento
-            print('   Días encontrados (dia1-dia7):');
+            debugPrint('   Días encontrados (dia1-dia7):');
             for (int i = 1; i <= 7; i++) {
               final dia = primerElemento['dia$i']?.toString();
-              print('     dia$i: "$dia" (tipo: ${dia?.runtimeType})');
+              debugPrint('     dia$i: "$dia" (tipo: ${dia?.runtimeType})');
             }
           }
           
@@ -51,8 +60,10 @@ class SportService {
             try {
               return SportActivity.fromJson(json);
             } catch (e) {
-              print('❌ Error parseando actividad: $e');
-              print('   JSON problemático: $json');
+              if (kDebugMode) {
+                debugPrint('❌ Error parseando actividad: $e');
+                debugPrint('   JSON problemático: $json');
+              }
               // Retornar una actividad por defecto en caso de error
               return SportActivity(
                 id: 0,
@@ -75,23 +86,25 @@ class SportService {
           final actividadesValidas = actividades.where((a) => a.id != 0).toList();
           
           // Log para debugging de días
-          print('📅 RESUMEN DE DÍAS:');
-          for (int i = 0; i < actividadesValidas.length && i < 3; i++) {
-            final actividad = actividadesValidas[i];
-            print('   ${actividad.nombreActividad}:');
-            print('     - Días procesados: ${actividad.diasSemana}');
-            print('     - Días formateados: "${actividad.diasFormateados}"');
+          if (kDebugMode) {
+            debugPrint('📅 RESUMEN DE DÍAS:');
+            for (int i = 0; i < actividadesValidas.length && i < 3; i++) {
+              final actividad = actividadesValidas[i];
+              debugPrint('   ${actividad.nombreActividad}:');
+              debugPrint('     - Días procesados: ${actividad.diasSemana}');
+              debugPrint('     - Días formateados: "${actividad.diasFormateados}"');
+            }
+            
+            // Estadísticas
+            final infantiles = actividadesValidas.where((a) => a.isInfantil).length;
+            final adultos = actividadesValidas.where((a) => a.isAdulto).length;
+            final conDias = actividadesValidas.where((a) => a.tieneDias).length;
+            
+            debugPrint('👶 Actividades Infantiles: $infantiles');
+            debugPrint('👨 Actividades Adultos: $adultos');
+            debugPrint('📅 Actividades con días: $conDias');
+            debugPrint('🎯 Total de actividades cargadas: ${actividadesValidas.length}');
           }
-          
-          // Estadísticas
-          final infantiles = actividadesValidas.where((a) => a.isInfantil).length;
-          final adultos = actividadesValidas.where((a) => a.isAdulto).length;
-          final conDias = actividadesValidas.where((a) => a.tieneDias).length;
-          
-          print('👶 Actividades Infantiles: $infantiles');
-          print('👨 Actividades Adultos: $adultos');
-          print('📅 Actividades con días: $conDias');
-          print('🎯 Total de actividades cargadas: ${actividadesValidas.length}');
           
           return actividadesValidas;
         } else {
@@ -101,8 +114,10 @@ class SportService {
         throw Exception('Error HTTP: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Error conectando al servidor: $e');
-      print('🔄 Usando datos de ejemplo...');
+      if (kDebugMode) {
+        debugPrint('❌ Error conectando al servidor: $e');
+        debugPrint('🔄 Usando datos de ejemplo...');
+      }
       return await _getDatosEjemplo();
     }
   }

@@ -147,13 +147,12 @@ class _SettingsPageState extends State<SettingsPage> {
             TextButton(
               onPressed: () async {
                 final navigator = Navigator.of(context);
+                final messenger = ScaffoldMessenger.of(context);
+                
                 navigator.pop();
-
                 await SessionManager.clearAllData();
 
                 if (!mounted) return;
-
-                final messenger = ScaffoldMessenger.of(context);
                 messenger.showSnackBar(
                   const SnackBar(
                     content: Text("Datos limpiados correctamente"),
@@ -335,6 +334,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         boxShadow: [
           BoxShadow(
+            // ignore: deprecated_member_use
             color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),

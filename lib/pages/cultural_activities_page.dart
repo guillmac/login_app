@@ -82,7 +82,7 @@ class _CulturalActivitiesPageState extends State<CulturalActivitiesPage> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1), // Fixed here
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -166,7 +166,7 @@ class _CulturalActivitiesPageState extends State<CulturalActivitiesPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1), // Fixed here
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -286,7 +286,7 @@ class _CulturalActivitiesPageState extends State<CulturalActivitiesPage> {
                   fontSize: 11,
                 ),
               ),
-              backgroundColor: Colors.purple[50],
+              backgroundColor: Colors.purple.withValues(alpha: 0.1), // Fixed here
               visualDensity: VisualDensity.compact,
             );
           }).toList(),
@@ -302,7 +302,7 @@ class _CulturalActivitiesPageState extends State<CulturalActivitiesPage> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.orange[50],
+            color: Colors.orange.withValues(alpha: 0.1), // Fixed here
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -315,7 +315,7 @@ class _CulturalActivitiesPageState extends State<CulturalActivitiesPage> {
                   style: TextStyle(
                     fontFamily: 'Montserrat',
                     fontSize: 12,
-                    color: Colors.orange[800],
+                    color: Colors.orange.withValues(alpha: 0.8), // Fixed here
                   ),
                 ),
               ),
@@ -355,7 +355,7 @@ class _CulturalActivitiesPageState extends State<CulturalActivitiesPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.music_note, size: 64, color: Colors.grey[300]),
+          Icon(Icons.music_note, size: 64, color: Colors.grey.withValues(alpha: 0.3)), // Fixed here
           const SizedBox(height: 16),
           Text(
             message,
