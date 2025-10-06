@@ -35,6 +35,59 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
     });
   }
 
+  // Función para manejar el pago
+  void _handlePago(SportActivity actividad) {
+    // Aquí puedes implementar la lógica de pago
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          "Procesar Pago",
+          style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          "¿Desea proceder con el pago para:\n\n${actividad.nombreActividad}?",
+          style: const TextStyle(fontFamily: 'Montserrat'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              "Cancelar",
+              style: TextStyle(fontFamily: 'Montserrat'),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Aquí iría la navegación a la pantalla de pago
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    "Redirigiendo al pago: ${actividad.nombreActividad}",
+                    style: const TextStyle(fontFamily: 'Montserrat'),
+                  ),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromRGBO(13, 71, 161, 1),
+            ),
+            child: const Text(
+              "Continuar",
+              style: TextStyle(
+                fontFamily: 'Montserrat',
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,8 +135,7 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  // ignore: deprecated_member_use
-                  color: Colors.black.withOpacity(0.1),
+                  color: _getColorWithOpacity(Colors.black, 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -167,8 +219,7 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    // ignore: deprecated_member_use
-                    color: color.withOpacity(0.1),
+                    color: _getColorWithOpacity(color, 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -203,6 +254,33 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
             
             // Avisos
             if (actividad.avisos.isNotEmpty) _buildAvisos(actividad),
+            
+            // BOTÓN DE PAGAR - AGREGADO AQUÍ
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 45,
+              child: ElevatedButton.icon(
+                onPressed: () => _handlePago(actividad),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromRGBO(13, 71, 161, 1),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 2,
+                ),
+                icon: const Icon(Icons.payment, size: 20),
+                label: const Text(
+                  "PAGAR ACTIVIDAD",
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -287,7 +365,7 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
                   fontSize: 11,
                 ),
               ),
-              backgroundColor: Colors.blue[50],
+              backgroundColor: _getColorWithOpacity(Colors.blue, 0.1),
               visualDensity: VisualDensity.compact,
             );
           }).toList(),
@@ -320,7 +398,7 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
                 fontSize: 12,
               ),
             ),
-            backgroundColor: Colors.green[50],
+            backgroundColor: _getColorWithOpacity(Colors.green, 0.1),
             visualDensity: VisualDensity.compact,
           );
         }).toList(),
@@ -335,7 +413,7 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.orange[50],
+            color: _getColorWithOpacity(Colors.orange, 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -348,7 +426,7 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
                   style: TextStyle(
                     fontFamily: 'Montserrat',
                     fontSize: 12,
-                    color: Colors.orange[800],
+                    color: _getMaterialColor(Colors.orange, 800),
                   ),
                 ),
               ),
@@ -388,7 +466,7 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.sports_soccer, size: 64, color: Colors.grey[300]),
+          Icon(Icons.sports_soccer, size: 64, color: _getMaterialColor(Colors.grey, 300)),
           const SizedBox(height: 16),
           Text(
             message,
@@ -440,5 +518,27 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
         ],
       ),
     );
+  }
+
+  // Método auxiliar para reemplazar .withOpacity() deprecado
+  Color _getColorWithOpacity(Color color, double opacity) {
+    return Color.alphaBlend(color.withAlpha((opacity * 255).round()), Colors.transparent);
+  }
+
+  // Método auxiliar para obtener colores de Material design sin usar el operador []
+  Color _getMaterialColor(MaterialColor color, int shade) {
+    switch (shade) {
+      case 50: return color.shade50;
+      case 100: return color.shade100;
+      case 200: return color.shade200;
+      case 300: return color.shade300;
+      case 400: return color.shade400;
+      case 500: return color.shade500;
+      case 600: return color.shade600;
+      case 700: return color.shade700;
+      case 800: return color.shade800;
+      case 900: return color.shade900;
+      default: return color;
+    }
   }
 }

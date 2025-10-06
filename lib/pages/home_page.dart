@@ -4,8 +4,9 @@ import 'payments_page.dart';
 import '../utils/session_manager.dart';
 import 'welcome_page.dart';
 import 'settings_page.dart';
-import 'sports_activities_page.dart'; // Importación agregada
-import 'cultural_activities_page.dart'; // Agregar esta importación
+import 'sports_activities_page.dart';
+import 'cultural_activities_page.dart';
+import 'events_page.dart'; // ✅ IMPORTACIÓN AGREGADA
 
 class HomePage extends StatelessWidget {
   final Map<String, dynamic> user;
@@ -15,7 +16,6 @@ class HomePage extends StatelessWidget {
   Future<void> _logout(BuildContext context) async {
     await SessionManager.logout();
     
-    // Check if the widget is still mounted before using context
     if (!context.mounted) return;
     
     Navigator.of(context).pushAndRemoveUntil(
@@ -116,7 +116,7 @@ class HomePage extends StatelessWidget {
               Icons.sports_soccer,
               () => _navigateToPage(
                 context,
-                const SportsActivitiesPage(), // ✅ CORREGIDO - página real
+                const SportsActivitiesPage(),
               ),
             ),
             _buildSectionButton(
@@ -125,29 +125,26 @@ class HomePage extends StatelessWidget {
               Icons.music_note,
               () => _navigateToPage(
                 context,
-                const CulturalActivitiesPage(), // Cambiar a página real
+                const CulturalActivitiesPage(),
               ),
             ),
             _buildSectionButton(
               context,
               "Eventos",
               Icons.event,
-              () =>
-                  _navigateToPage(context, _PlaceholderPage(title: "Eventos")),
+              () => _navigateToPage(context, const EventsPage()), // ✅ CORREGIDO
             ),
             _buildSectionButton(
               context,
               "Noticias",
               Icons.article,
-              () =>
-                  _navigateToPage(context, _PlaceholderPage(title: "Noticias")),
+              () => _navigateToPage(context, _PlaceholderPage(title: "Noticias")),
             ),
             _buildSectionButton(
               context,
               "Torneos",
               Icons.emoji_events,
-              () =>
-                  _navigateToPage(context, _PlaceholderPage(title: "Torneos")),
+              () => _navigateToPage(context, _PlaceholderPage(title: "Torneos")),
             ),
             _buildSectionButton(
               context,
@@ -177,8 +174,7 @@ class HomePage extends StatelessWidget {
               context,
               "Contacto",
               Icons.contact_mail,
-              () =>
-                  _navigateToPage(context, _PlaceholderPage(title: "Contacto")),
+              () => _navigateToPage(context, _PlaceholderPage(title: "Contacto")),
             ),
           ],
         ),
@@ -197,7 +193,7 @@ class HomePage extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05), // Fixed here
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -206,7 +202,7 @@ class HomePage extends StatelessWidget {
       child: BottomNavigationBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        currentIndex: 0, // Home está seleccionado
+        currentIndex: 0,
         selectedItemColor: const Color.fromRGBO(25, 118, 210, 1),
         unselectedItemColor: Colors.grey,
         onTap: (index) => _onBottomNavTap(context, index),
@@ -222,7 +218,6 @@ class HomePage extends StatelessWidget {
   void _onBottomNavTap(BuildContext context, int index) {
     switch (index) {
       case 0:
-        // Ya estamos en Home
         break;
       case 1:
         Navigator.push(

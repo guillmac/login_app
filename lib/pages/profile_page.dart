@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:logger/logger.dart';
 import '../utils/session_manager.dart';
 import 'welcome_page.dart';
 import 'home_page.dart';
@@ -21,9 +22,99 @@ class _ProfilePageState extends State<ProfilePage> {
   bool loading = true;
   bool editing = false;
   File? _newImage;
-  final int _selectedIndex = 1; // Perfil seleccionado
+  final int _selectedIndex = 1;
+  
+  // Instancia de Logger
+  final Logger _logger = Logger();
 
-  // Controladores de texto - TODOS LOS CAMPOS
+  // Listas de opciones para los dropdowns
+  final List<String> _generoOpciones = ['Masculino', 'Femenino', 'Otro'];
+  final List<String> _tipoSangreOpciones = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
+  final List<String> _parentescoOpciones = [
+    'Padre', 'Madre', 'Esposo(a)', 'Hijo(a)', 'Hermano(a)',
+    'Abuelo(a)', 'Tío(a)', 'Primo(a)', 'Amigo(a)', 'Otro'
+  ];
+
+  // Listas para alergias y enfermedades crónicas
+  final List<String> _alergiasOpciones = [
+    'Ninguna',
+    'Penicilina',
+    'Amoxicilina',
+    'Aspirina',
+    'Ibuprofeno',
+    'Sulfas',
+    'Codeína',
+    'Morfina',
+    'Latex',
+    'Yodo',
+    'Anestésicos locales',
+    'Polen',
+    'Ácaros del polvo',
+    'Hongos',
+    'Caspa de animales',
+    'Picaduras de insectos',
+    'Mariscos',
+    'Pescado',
+    'Maní',
+    'Nueces',
+    'Almendras',
+    'Huevo',
+    'Leche',
+    'Soya',
+    'Trigo',
+    'Gluten',
+    'Fresas',
+    'Chocolate',
+    'Colorantes artificiales',
+    'Conservadores',
+    'Otro'
+  ];
+
+  final List<String> _enfermedadesCronicasOpciones = [
+    'Ninguna',
+    'Diabetes tipo 1',
+    'Diabetes tipo 2',
+    'Hipertensión arterial',
+    'Artritis reumatoide',
+    'Artrosis',
+    'Osteoporosis',
+    'Asma',
+    'EPOC (Enfermedad Pulmonar Obstructiva Crónica)',
+    'Enfisema pulmonar',
+    'Enfermedad cardíaca coronaria',
+    'Insuficiencia cardíaca',
+    'Arritmia cardíaca',
+    'Hipotiroidismo',
+    'Hipertiroidismo',
+    'Enfermedad de Crohn',
+    'Colitis ulcerosa',
+    'Síndrome de intestino irritable',
+    'Enfermedad renal crónica',
+    'Hepatitis B crónica',
+    'Hepatitis C crónica',
+    'Cirrosis hepática',
+    'Migraña crónica',
+    'Epilepsia',
+    'Esclerosis múltiple',
+    'Parkinson',
+    'Alzheimer',
+    'Depresión mayor',
+    'Trastorno de ansiedad generalizada',
+    'Fibromialgia',
+    'Lupus eritematoso sistémico',
+    'VIH/SIDA',
+    'Cáncer',
+    'Anemia crónica',
+    'Otra'
+  ];
+
+  // Datos para colonias CDMX
+  List<String> _alcaldiasOpciones = [];
+  List<Map<String, dynamic>> _coloniasOpciones = [];
+  bool _loadingAlcaldias = false;
+  bool _loadingColonias = false;
+
+  // Controladores de texto
   final TextEditingController _primerNombreController = TextEditingController();
   final TextEditingController _segundoNombreController = TextEditingController();
   final TextEditingController _primerApellidoController = TextEditingController();
@@ -44,15 +135,141 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController _alergiasController = TextEditingController();
   final TextEditingController _enfermedadesCronicasController = TextEditingController();
 
+  // Variables para manejar los valores seleccionados en dropdowns
+  String? _selectedGenero;
+  String? _selectedTipoSangre;
+  String? _selectedParentesco;
+  String? _selectedAlergias;
+  String? _selectedEnfermedadesCronicas;
+  String? _selectedAlcaldia;
+  Map<String, dynamic>? _selectedColonia;
+
   @override
   void initState() {
     super.initState();
     _fetchUser();
+    _cargarAlcaldias();
+  }
+
+  @override
+  void dispose() {
+    // Liberar todos los controladores para prevenir fugas de memoria
+    _primerNombreController.dispose();
+    _segundoNombreController.dispose();
+    _primerApellidoController.dispose();
+    _segundoApellidoController.dispose();
+    _fechaNacimientoController.dispose();
+    _generoController.dispose();
+    _telefonoController.dispose();
+    _calleController.dispose();
+    _numeroController.dispose();
+    _coloniaController.dispose();
+    _alcaldiaController.dispose();
+    _cpController.dispose();
+    _ciudadController.dispose();
+    _emergenciaNombreController.dispose();
+    _emergenciaTelefonoController.dispose();
+    _emergenciaParentescoController.dispose();
+    _tipoSangreController.dispose();
+    _alergiasController.dispose();
+    _enfermedadesCronicasController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _cargarAlcaldias() async {
+    setState(() => _loadingAlcaldias = true);
+    try {
+      _logger.i('Cargando alcaldías...');
+      final response = await http.get(
+        Uri.parse("https://clubfrance.org.mx/api/colonias_cdmx.php?action=alcaldias"),
+      );
+
+      final data = jsonDecode(response.body);
+      if (data['success'] == true) {
+        _logger.i('Alcaldías cargadas exitosamente: ${data['alcaldias']?.length ?? 0} encontradas');
+        setState(() {
+          _alcaldiasOpciones = List<String>.from(data['alcaldias']);
+          _loadingAlcaldias = false;
+        });
+      } else {
+        _logger.w('Error al cargar alcaldías: ${data['message']}');
+        setState(() => _loadingAlcaldias = false);
+      }
+    } catch (e) {
+      _logger.e('Error cargando alcaldías: $e');
+      setState(() => _loadingAlcaldias = false);
+    }
+  }
+
+  Future<void> _cargarColonias(String alcaldia) async {
+    if (alcaldia.isEmpty) return;
+    
+    setState(() => _loadingColonias = true);
+    try {
+      _logger.i('Cargando colonias para alcaldía: $alcaldia');
+      final response = await http.get(
+        Uri.parse("https://clubfrance.org.mx/api/colonias_cdmx.php?action=colonias&alcaldia=${Uri.encodeComponent(alcaldia)}"),
+      );
+
+      final data = jsonDecode(response.body);
+      if (data['success'] == true) {
+        _logger.i('Colonias cargadas exitosamente: ${data['colonias']?.length ?? 0} encontradas');
+        setState(() {
+          _coloniasOpciones = List<Map<String, dynamic>>.from(data['colonias']);
+          _loadingColonias = false;
+          
+          // Si ya hay una colonia seleccionada, encontrar el objeto correspondiente
+          if (_coloniaController.text.isNotEmpty) {
+            _selectedColonia = _coloniasOpciones.firstWhere(
+              (element) => element['colonia'] == _coloniaController.text,
+              orElse: () => {},
+            );
+            if (_selectedColonia!.isEmpty) {
+              _selectedColonia = null;
+            }
+          }
+        });
+      } else {
+        _logger.w('Error al cargar colonias: ${data['message']}');
+        setState(() => _loadingColonias = false);
+      }
+    } catch (e) {
+      _logger.e('Error cargando colonias: $e');
+      setState(() => _loadingColonias = false);
+    }
+  }
+
+  void _onAlcaldiaChanged(String? newValue) {
+    setState(() {
+      _selectedAlcaldia = newValue;
+      _alcaldiaController.text = newValue ?? '';
+      _selectedColonia = null;
+      _coloniaController.text = '';
+      _cpController.text = '';
+      _coloniasOpciones = [];
+    });
+    
+    if (newValue != null && newValue.isNotEmpty) {
+      _logger.d('Alcaldía cambiada a: $newValue');
+      _cargarColonias(newValue);
+    }
+  }
+
+  void _onColoniaChanged(Map<String, dynamic>? newValue) {
+    if (newValue != null) {
+      _logger.d('Colonia seleccionada: ${newValue['colonia']}, CP: ${newValue['cp']}');
+      setState(() {
+        _selectedColonia = newValue;
+        _coloniaController.text = newValue['colonia'] ?? '';
+        _cpController.text = newValue['cp'] ?? '';
+      });
+    }
   }
 
   Future<void> _fetchUser() async {
     setState(() => loading = true);
     try {
+      _logger.i('Obteniendo datos del usuario: ${widget.email}');
       final response = await http.post(
         Uri.parse("https://clubfrance.org.mx/api/get_user.php"),
         headers: {"Content-Type": "application/json"},
@@ -62,33 +279,59 @@ class _ProfilePageState extends State<ProfilePage> {
       if (!mounted) return;
 
       final data = jsonDecode(response.body);
+      _logger.d('Datos recibidos del API para usuario: ${widget.email}');
+
       if (data['success'] == true) {
+        _logger.i('Datos de usuario obtenidos exitosamente');
         setState(() {
           user = data['user'];
           loading = false;
 
-          // Inicializar TODOS los controladores
-          _primerNombreController.text = user!['primer_nombre'] ?? "";
-          _segundoNombreController.text = user!['segundo_nombre'] ?? "";
-          _primerApellidoController.text = user!['primer_apellido'] ?? "";
-          _segundoApellidoController.text = user!['segundo_apellido'] ?? "";
-          _fechaNacimientoController.text = user!['fecha_nacimiento'] ?? "";
-          _generoController.text = _getGeneroDisplay(user!['genero']);
+          // Inicializar TODOS los controladores con valores limpios
+          _primerNombreController.text = _getValorLimpio(user!['primer_nombre']);
+          _segundoNombreController.text = _getValorLimpio(user!['segundo_nombre']);
+          _primerApellidoController.text = _getValorLimpio(user!['primer_apellido']);
+          _segundoApellidoController.text = _getValorLimpio(user!['segundo_apellido']);
+          _fechaNacimientoController.text = _getValorLimpio(user!['fecha_nacimiento']);
+          
+          final generoValue = _getValorLimpio(user!['genero']);
+          _generoController.text = _getGeneroDisplay(generoValue);
+          _selectedGenero = _generoController.text.isEmpty ? null : _generoController.text;
+          
           _telefonoController.text = _getValorLimpio(user!['telefono']);
-          _calleController.text = user!['calle'] ?? "";
-          _numeroController.text = user!['numero'] ?? "";
-          _coloniaController.text = user!['colonia'] ?? "";
-          _alcaldiaController.text = user!['alcaldia'] ?? "";
+          _calleController.text = _getValorLimpio(user!['calle']);
+          _numeroController.text = _getValorLimpio(user!['numero']);
+          _coloniaController.text = _getValorLimpio(user!['colonia']);
+          _alcaldiaController.text = _getValorLimpio(user!['alcaldia']);
+          _selectedAlcaldia = _alcaldiaController.text.isEmpty ? null : _alcaldiaController.text;
           _cpController.text = _getValorLimpio(user!['cp']);
-          _ciudadController.text = user!['ciudad'] ?? "";
-          _emergenciaNombreController.text = user!['emergencia_nombre'] ?? "";
+          _ciudadController.text = _getValorLimpio(user!['ciudad']);
+          _emergenciaNombreController.text = _getValorLimpio(user!['emergencia_nombre']);
           _emergenciaTelefonoController.text = _getValorLimpio(user!['emergencia_telefono']);
-          _emergenciaParentescoController.text = user!['emergencia_parentesco'] ?? "";
-          _tipoSangreController.text = user!['tipo_sangre'] ?? "";
-          _alergiasController.text = user!['alergias'] ?? "";
-          _enfermedadesCronicasController.text = user!['enfermedades_cronicas'] ?? "";
+          
+          final parentescoValue = _getValorLimpio(user!['emergencia_parentesco']);
+          _emergenciaParentescoController.text = parentescoValue;
+          _selectedParentesco = parentescoValue.isEmpty ? null : parentescoValue;
+          
+          final tipoSangreValue = _getValorLimpio(user!['tipo_sangre']);
+          _tipoSangreController.text = tipoSangreValue;
+          _selectedTipoSangre = tipoSangreValue.isEmpty ? null : tipoSangreValue;
+          
+          final alergiasValue = _getValorLimpio(user!['alergias']);
+          _alergiasController.text = alergiasValue;
+          _selectedAlergias = alergiasValue.isEmpty ? null : alergiasValue;
+          
+          final enfermedadesValue = _getValorLimpio(user!['enfermedades_cronicas']);
+          _enfermedadesCronicasController.text = enfermedadesValue;
+          _selectedEnfermedadesCronicas = enfermedadesValue.isEmpty ? null : enfermedadesValue;
+
+          // Cargar colonias si ya hay una alcaldía seleccionada
+          if (_alcaldiaController.text.isNotEmpty) {
+            _cargarColonias(_alcaldiaController.text);
+          }
         });
       } else {
+        _logger.w('Error al obtener usuario: ${data['message']}');
         setState(() => loading = false);
         final messenger = ScaffoldMessenger.of(context);
         messenger.showSnackBar(
@@ -98,6 +341,7 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       }
     } catch (e) {
+      _logger.e('Error en _fetchUser: $e');
       if (!mounted) return;
       setState(() => loading = false);
       final messenger = ScaffoldMessenger.of(context);
@@ -105,19 +349,10 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // Función mejorada para limpiar valores
   String _getValorLimpio(dynamic valor) {
-    if (valor == null) {
-      return "";
-    }
-    
+    if (valor == null) return "";
     final stringValor = valor.toString().trim();
-    
-    if (stringValor.isEmpty) {
-      return "";
-    }
-    
-    // Casos especiales que deben tratarse como vacío
+    if (stringValor.isEmpty) return "";
     if (stringValor.toLowerCase() == 'null' || 
         stringValor == 'NULL' ||
         stringValor == 'Null' ||
@@ -126,13 +361,11 @@ class _ProfilePageState extends State<ProfilePage> {
         stringValor == 'no especificado') {
       return "";
     }
-    
     return stringValor;
   }
 
-  // Función para mostrar el género de forma amigable
-  String _getGeneroDisplay(String? genero) {
-    if (genero == null || genero.isEmpty) return "";
+  String _getGeneroDisplay(String genero) {
+    if (genero.isEmpty) return "";
     switch (genero) {
       case 'M': return 'Masculino';
       case 'F': return 'Femenino';
@@ -141,7 +374,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // Función inversa para guardar el género
   String _getGeneroValue(String display) {
     switch (display) {
       case 'Masculino': return 'M';
@@ -153,11 +385,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _guardarCambios() async {
     try {
+      _logger.i('Iniciando guardado de cambios para usuario: ${widget.email}');
       String? fotoUrl = user!['foto'];
 
       if (_newImage != null) {
+        _logger.d('Subiendo nueva imagen de perfil');
         File imagenCorregida = await _corregirOrientacionImagen(_newImage!);
-
         var request = http.MultipartRequest(
           "POST",
           Uri.parse("https://clubfrance.org.mx/api/upload_foto.php"),
@@ -170,11 +403,12 @@ class _ProfilePageState extends State<ProfilePage> {
         var responseBody = await response.stream.bytesToString();
 
         if (!mounted) return;
-
         var json = jsonDecode(responseBody);
         if (json['success'] == true) {
+          _logger.i('Imagen subida exitosamente: ${json['path']}');
           fotoUrl = json['path'];
         } else {
+          _logger.w('Error al subir imagen: ${json['message']}');
           final messenger = ScaffoldMessenger.of(context);
           messenger.showSnackBar(
             SnackBar(
@@ -185,7 +419,6 @@ class _ProfilePageState extends State<ProfilePage> {
         }
       }
 
-      // Preparar datos para enviar
       final Map<String, dynamic> updateData = {
         "email": widget.email.trim(),
         "numero_usuario": user!['numero_usuario'],
@@ -211,6 +444,7 @@ class _ProfilePageState extends State<ProfilePage> {
         "foto": fotoUrl,
       };
 
+      _logger.d('Enviando datos actualizados al servidor');
       final response = await http.post(
         Uri.parse("https://clubfrance.org.mx/api/update_user.php"),
         headers: {"Content-Type": "application/json"},
@@ -218,10 +452,10 @@ class _ProfilePageState extends State<ProfilePage> {
       );
 
       if (!mounted) return;
-
       final data = jsonDecode(response.body);
       final messenger = ScaffoldMessenger.of(context);
       if (data['success'] == true) {
+        _logger.i('Datos actualizados exitosamente');
         setState(() {
           editing = false;
           _newImage = null;
@@ -229,8 +463,9 @@ class _ProfilePageState extends State<ProfilePage> {
         messenger.showSnackBar(
           const SnackBar(content: Text("Datos actualizados con éxito")),
         );
-        _fetchUser(); // Recargar datos para verificar
+        _fetchUser();
       } else {
+        _logger.w('Error al actualizar datos: ${data['message']}');
         messenger.showSnackBar(
           SnackBar(
             content: Text(data['message'] ?? "Error al guardar cambios"),
@@ -238,99 +473,11 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       }
     } catch (e) {
+      _logger.e('Error en _guardarCambios: $e');
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       messenger.showSnackBar(SnackBar(content: Text("Error: $e")));
     }
-  }
-
-  Future<File> _corregirOrientacionImagen(File imageFile) async {
-    return imageFile;
-  }
-
-  void _navigateToPage(int index) {
-    if (index == _selectedIndex) return;
-
-    if (index == 0) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => HomePage(user: user!)),
-        (route) => false,
-      );
-    } else if (index == 2) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => SettingsPage(user: user!)),
-        (route) => false,
-      );
-    }
-  }
-
-  void _logout() async {
-    await SessionManager.logout();
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const WelcomePage()),
-      (route) => false,
-    );
-  }
-
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: ImageSource.camera,
-      preferredCameraDevice: CameraDevice.front,
-      imageQuality: 85,
-    );
-
-    if (pickedFile != null) {
-      setState(() => _newImage = File(pickedFile.path));
-    }
-  }
-
-  Widget _buildProfileImage() {
-    if (_newImage != null) {
-      return Image.file(_newImage!, fit: BoxFit.cover, width: 120, height: 120);
-    } else if (user!['foto'] != null && user!['foto']!.isNotEmpty) {
-      return Image.network(
-        user!['foto']!,
-        fit: BoxFit.cover,
-        width: 120,
-        height: 120,
-        errorBuilder: (context, error, stackTrace) {
-          return const Icon(Icons.person, size: 60, color: Colors.grey);
-        },
-      );
-    } else {
-      return const Icon(Icons.person, size: 60, color: Colors.grey);
-    }
-  }
-
-  // Calcular edad a partir de la fecha de nacimiento
-  String? _calcularEdad() {
-    final fechaNacimiento = _fechaNacimientoController.text;
-    if (fechaNacimiento.isEmpty) return null;
-    
-    try {
-      final nacimiento = DateTime.parse(fechaNacimiento);
-      final ahora = DateTime.now();
-      final edad = ahora.year - nacimiento.year;
-      final mesCumple = ahora.month > nacimiento.month || 
-                        (ahora.month == nacimiento.month && ahora.day >= nacimiento.day);
-      return mesCumple ? edad.toString() : (edad - 1).toString();
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // Concatenar calle y número para mostrar en modo lectura
-  String _getDireccionCompleta() {
-    final calle = _calleController.text;
-    final numero = _numeroController.text;
-    
-    if (calle.isEmpty && numero.isEmpty) return "No especificada";
-    if (calle.isEmpty) return numero;
-    if (numero.isEmpty) return calle;
-    
-    return "$calle $numero";
   }
 
   @override
@@ -468,9 +615,14 @@ class _ProfilePageState extends State<ProfilePage> {
             if (!editing && _fechaNacimientoController.text.isNotEmpty) 
               _buildStaticInfo("Edad", _calcularEdad() ?? "No especificada", Icons.emoji_people),
             
+            // GÉNERO CON DROPDOWN
             if (editing) 
-              _buildDropdownField("Género", _generoController, editing, Icons.person_outline, 
-                ['Masculino', 'Femenino', 'Otro']),
+              _buildDropdownField("Género", _selectedGenero, _generoOpciones, Icons.person_outline, (newValue) {
+                setState(() {
+                  _selectedGenero = newValue;
+                  _generoController.text = newValue ?? '';
+                });
+              }),
             if (!editing && _generoController.text.isNotEmpty)
               _buildStaticInfo("Género", _generoController.text, Icons.person_outline),
             
@@ -483,12 +635,27 @@ class _ProfilePageState extends State<ProfilePage> {
             if (editing) ...[
               _buildField("Calle", _calleController, editing, Icons.signpost),
               _buildField("Número", _numeroController, editing, Icons.numbers),
+              
+              // ALACALDÍA CON DROPDOWN
+              _buildAlcaldiaDropdown(),
+              
+              // COLONIA CON DROPDOWN (dependiente de alcaldía)
+              _buildColoniaDropdown(),
+              
+              // CÓDIGO POSTAL (se llena automáticamente)
+              _buildField("Código Postal", _cpController, false, Icons.markunread_mailbox),
             ] else
               _buildStaticInfo("Calle y Número", _getDireccionCompleta(), Icons.location_on),
             
-            _buildField("Colonia", _coloniaController, editing, Icons.home),
-            _buildField("Alcaldía/Municipio", _alcaldiaController, editing, Icons.account_balance),
-            _buildField("Código Postal", _cpController, editing, Icons.markunread_mailbox),
+            if (!editing) ...[
+              if (_coloniaController.text.isNotEmpty)
+                _buildStaticInfo("Colonia", _coloniaController.text, Icons.home),
+              if (_alcaldiaController.text.isNotEmpty)
+                _buildStaticInfo("Alcaldía/Municipio", _alcaldiaController.text, Icons.account_balance),
+              if (_cpController.text.isNotEmpty)
+                _buildStaticInfo("Código Postal", _cpController.text, Icons.markunread_mailbox),
+            ],
+            
             _buildField("Ciudad", _ciudadController, editing, Icons.location_city),
 
             const SizedBox(height: 24),
@@ -497,15 +664,55 @@ class _ProfilePageState extends State<ProfilePage> {
             _buildSectionHeader("Contacto de Emergencia"),
             _buildField("Nombre Completo", _emergenciaNombreController, editing, Icons.emergency),
             _buildField("Celular", _emergenciaTelefonoController, editing, Icons.phone_android),
-            _buildField("Parentesco", _emergenciaParentescoController, editing, Icons.family_restroom),
+            
+            // PARENTESCO CON DROPDOWN
+            if (editing)
+              _buildDropdownField("Parentesco", _selectedParentesco, _parentescoOpciones, Icons.family_restroom, (newValue) {
+                setState(() {
+                  _selectedParentesco = newValue;
+                  _emergenciaParentescoController.text = newValue ?? '';
+                });
+              }),
+            if (!editing && _emergenciaParentescoController.text.isNotEmpty)
+              _buildStaticInfo("Parentesco", _emergenciaParentescoController.text, Icons.family_restroom),
 
             const SizedBox(height: 24),
 
             // SECCIÓN: INFORMACIÓN MÉDICA
             _buildSectionHeader("Información Médica"),
-            _buildField("Tipo de Sangre", _tipoSangreController, editing, Icons.bloodtype),
-            _buildField("Alergias", _alergiasController, editing, Icons.health_and_safety),
-            _buildField("Enfermedades Crónicas", _enfermedadesCronicasController, editing, Icons.medical_services),
+            
+            // TIPO DE SANGRE CON DROPDOWN (simplificado)
+            if (editing)
+              _buildDropdownField("Tipo de Sangre", _selectedTipoSangre, _tipoSangreOpciones, Icons.bloodtype, (newValue) {
+                setState(() {
+                  _selectedTipoSangre = newValue;
+                  _tipoSangreController.text = newValue ?? '';
+                });
+              }),
+            if (!editing && _tipoSangreController.text.isNotEmpty)
+              _buildStaticInfo("Tipo de Sangre", _tipoSangreController.text, Icons.bloodtype),
+            
+            // ALERGIAS CON DROPDOWN
+            if (editing)
+              _buildDropdownField("Alergias", _selectedAlergias, _alergiasOpciones, Icons.health_and_safety, (newValue) {
+                setState(() {
+                  _selectedAlergias = newValue;
+                  _alergiasController.text = newValue ?? '';
+                });
+              }),
+            if (!editing && _alergiasController.text.isNotEmpty)
+              _buildStaticInfo("Alergias", _alergiasController.text, Icons.health_and_safety),
+            
+            // ENFERMEDADES CRÓNICAS CON DROPDOWN
+            if (editing)
+              _buildDropdownField("Enfermedades Crónicas", _selectedEnfermedadesCronicas, _enfermedadesCronicasOpciones, Icons.medical_services, (newValue) {
+                setState(() {
+                  _selectedEnfermedadesCronicas = newValue;
+                  _enfermedadesCronicasController.text = newValue ?? '';
+                });
+              }),
+            if (!editing && _enfermedadesCronicasController.text.isNotEmpty)
+              _buildStaticInfo("Enfermedades Crónicas", _enfermedadesCronicasController.text, Icons.medical_services),
 
             const SizedBox(height: 32),
           ],
@@ -515,39 +722,110 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget _buildAlcaldiaDropdown() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: DropdownButtonFormField<String>(
+        // CORREGIDO: Usar initialValue en lugar de value
+        initialValue: _selectedAlcaldia,
+        decoration: InputDecoration(
+          labelText: "Alcaldía/Municipio",
+          prefixIcon: const Icon(Icons.account_balance),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          suffixIcon: _loadingAlcaldias
+              ? const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : null,
+        ),
+        items: _alcaldiasOpciones.map((String value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Text(value),
+          );
+        }).toList(),
+        onChanged: _onAlcaldiaChanged,
+      ),
+    );
+  }
+
+  Widget _buildColoniaDropdown() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: DropdownButtonFormField<Map<String, dynamic>>(
+        // CORREGIDO: Usar initialValue en lugar de value
+        initialValue: _selectedColonia,
+        decoration: InputDecoration(
+          labelText: "Colonia",
+          prefixIcon: const Icon(Icons.home),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          suffixIcon: _loadingColonias
+              ? const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : null,
+        ),
+        items: _coloniasOpciones.map((Map<String, dynamic> colonia) {
+          return DropdownMenuItem<Map<String, dynamic>>(
+            value: colonia,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(colonia['colonia'] ?? ''),
+                Text(
+                  "CP: ${colonia['cp'] ?? ''}",
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+        onChanged: _onColoniaChanged,
+      ),
+    );
+  }
+
   Widget _buildDropdownField(
     String label,
-    TextEditingController controller,
-    bool editable,
-    IconData icon,
+    String? selectedValue,
     List<String> options,
+    IconData icon,
+    ValueChanged<String?> onChanged,
   ) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
-      child: editable
-          ? DropdownButtonFormField<String>(
-              // CORREGIDO: Cambiado 'value' por 'initialValue'
-              initialValue: controller.text.isEmpty ? null : controller.text,
-              decoration: InputDecoration(
-                labelText: label,
-                prefixIcon: Icon(icon),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              items: options.map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  controller.text = newValue ?? '';
-                });
-              },
-            )
-          : _buildStaticInfo(label, controller.text.isNotEmpty ? controller.text : "No especificado", icon),
+      child: DropdownButtonFormField<String>(
+        // CORREGIDO: Usar initialValue en lugar de value
+        initialValue: selectedValue,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        items: options.map((String value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Text(value),
+          );
+        }).toList(),
+        onChanged: onChanged,
+      ),
     );
   }
 
@@ -710,7 +988,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 13), // 0.05 opacity = 13/255
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -730,5 +1008,95 @@ class _ProfilePageState extends State<ProfilePage> {
         ],
       ),
     );
+  }
+
+  String? _calcularEdad() {
+    final fechaNacimiento = _fechaNacimientoController.text;
+    if (fechaNacimiento.isEmpty) return null;
+    try {
+      final nacimiento = DateTime.parse(fechaNacimiento);
+      final ahora = DateTime.now();
+      final edad = ahora.year - nacimiento.year;
+      final mesCumple = ahora.month > nacimiento.month || 
+                        (ahora.month == nacimiento.month && ahora.day >= nacimiento.day);
+      return mesCumple ? edad.toString() : (edad - 1).toString();
+    } catch (e) {
+      _logger.e('Error calculando edad: $e');
+      return null;
+    }
+  }
+
+  String _getDireccionCompleta() {
+    final calle = _calleController.text;
+    final numero = _numeroController.text;
+    if (calle.isEmpty && numero.isEmpty) return "No especificada";
+    if (calle.isEmpty) return numero;
+    if (numero.isEmpty) return calle;
+    return "$calle $numero";
+  }
+
+  void _navigateToPage(int index) {
+    if (index == _selectedIndex) return;
+    if (index == 0) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => HomePage(user: user!)),
+        (route) => false,
+      );
+    } else if (index == 2) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => SettingsPage(user: user!)),
+        (route) => false,
+      );
+    }
+  }
+
+  void _logout() async {
+    _logger.i('Usuario cerrando sesión: ${widget.email}');
+    await SessionManager.logout();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const WelcomePage()),
+      (route) => false,
+    );
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      _logger.d('Iniciando selección de imagen');
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.front,
+        imageQuality: 85,
+      );
+      if (pickedFile != null) {
+        _logger.i('Imagen seleccionada: ${pickedFile.path}');
+        setState(() => _newImage = File(pickedFile.path));
+      }
+    } catch (e) {
+      _logger.e('Error al seleccionar imagen: $e');
+    }
+  }
+
+  Widget _buildProfileImage() {
+    if (_newImage != null) {
+      return Image.file(_newImage!, fit: BoxFit.cover, width: 120, height: 120);
+    } else if (user!['foto'] != null && user!['foto']!.isNotEmpty) {
+      return Image.network(
+        user!['foto']!,
+        fit: BoxFit.cover,
+        width: 120,
+        height: 120,
+        errorBuilder: (context, error, stackTrace) {
+          return const Icon(Icons.person, size: 60, color: Colors.grey);
+        },
+      );
+    } else {
+      return const Icon(Icons.person, size: 60, color: Colors.grey);
+    }
+  }
+
+  Future<File> _corregirOrientacionImagen(File imageFile) async {
+    return imageFile;
   }
 }

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../utils/session_manager.dart';
+// Agrega las importaciones de las páginas que necesitas
+import 'home_page.dart'; // Asegúrate de que esta ruta sea correcta
+import 'profile_page.dart'; // Asegúrate de que esta ruta sea correcta
+import 'settings_page.dart'; // Asegúrate de que esta ruta sea correcta
 
 class PaymentsPage extends StatefulWidget {
   const PaymentsPage({super.key});
@@ -26,8 +30,8 @@ class _PaymentsPageState extends State<PaymentsPage> {
     setState(() => loading = true);
     
     try {
-      // Obtener datos del usuario desde SessionManager
-      final userData = await SessionManager.getUser();
+      // CORREGIDO: Usar getCurrentUser() en lugar de getUser()
+      final userData = await SessionManager.getCurrentUser();
       if (userData != null) {
         setState(() {
           user = userData;
@@ -35,15 +39,38 @@ class _PaymentsPageState extends State<PaymentsPage> {
         
         // Cargar información de la familia
         await _loadFamiliaInfo(userData['numero_usuario'] ?? '');
+      } else {
+        // Si no hay datos del usuario, usar datos por defecto
+        _setDefaultUserData();
       }
     } catch (e) {
       // Manejar error
+      _setDefaultUserData();
     } finally {
       setState(() => loading = false);
     }
   }
 
+  void _setDefaultUserData() {
+    setState(() {
+      user = {
+        'numero_usuario': 'No disponible',
+        'tipo_membresia': 'Individual',
+        'estatus_membresia': 'Activo',
+        'email': 'No disponible',
+      };
+      familiaUsuarios = [user!['numero_usuario']];
+    });
+  }
+
   Future<void> _loadFamiliaInfo(String numeroUsuarioBase) async {
+    if (numeroUsuarioBase.isEmpty || numeroUsuarioBase == 'No disponible') {
+      setState(() {
+        familiaUsuarios = [numeroUsuarioBase];
+      });
+      return;
+    }
+
     try {
       final response = await http.post(
         Uri.parse("https://clubfrance.org.mx/api/get_usuarios_relacionados.php"),
@@ -57,7 +84,17 @@ class _PaymentsPageState extends State<PaymentsPage> {
           setState(() {
             familiaUsuarios = List<String>.from(data['usuarios_relacionados']);
           });
+        } else {
+          // Si la API no tiene éxito, mostrar solo el usuario actual
+          setState(() {
+            familiaUsuarios = [numeroUsuarioBase];
+          });
         }
+      } else {
+        // En caso de error HTTP, mostrar solo el usuario actual
+        setState(() {
+          familiaUsuarios = [numeroUsuarioBase];
+        });
       }
     } catch (e) {
       // En caso de error, mostrar solo el usuario actual
@@ -72,10 +109,12 @@ class _PaymentsPageState extends State<PaymentsPage> {
 
     switch (index) {
       case 0:
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => HomePage(user: user!)),
-          (route) => false,
-        );
+        if (user != null) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => HomePage(user: user!)),
+            (route) => false,
+          );
+        }
         break;
       case 1:
         Navigator.of(context).pushAndRemoveUntil(
@@ -86,10 +125,12 @@ class _PaymentsPageState extends State<PaymentsPage> {
         );
         break;
       case 2:
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => SettingsPage(user: user!)),
-          (route) => false,
-        );
+        if (user != null) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => SettingsPage(user: user!)),
+            (route) => false,
+          );
+        }
         break;
     }
   }
@@ -259,7 +300,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
             const SizedBox(height: 12),
             ...familiaUsuarios.map((numeroUsuario) => 
               _buildMiembroFamiliaItem(numeroUsuario)
-            ).toList(),
+            ),
           ],
         ),
       ),
@@ -274,9 +315,9 @@ class _PaymentsPageState extends State<PaymentsPage> {
       margin: const EdgeInsets.symmetric(vertical: 6),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: colorRol.withOpacity(0.1),
+        color: colorRol.withAlpha(25), // Reemplazado withOpacity(0.1)
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorRol.withOpacity(0.3)),
+        border: Border.all(color: colorRol.withAlpha(76)), // Reemplazado withOpacity(0.3)
       ),
       child: Row(
         children: [
@@ -425,7 +466,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color.fromRGBO(0, 0, 0, 13), // Reemplazado con valores RGBO
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
