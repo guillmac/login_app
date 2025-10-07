@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 import 'profile_page.dart';
 import 'payments_page.dart';
 import '../utils/session_manager.dart';
@@ -7,18 +11,85 @@ import 'settings_page.dart';
 import 'sports_activities_page.dart';
 import 'cultural_activities_page.dart';
 import 'events_page.dart';
-import 'contact_page.dart'; // ✅ Página real de Contacto
+import 'contact_page.dart'; // Página real de Contacto
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   final Map<String, dynamic> user;
 
   const HomePage({super.key, required this.user});
 
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    _obtenerUbicacion();
+  }
+
+  Future<void> _obtenerUbicacion() async {
+    bool servicioHabilitado = await Geolocator.isLocationServiceEnabled();
+    if (!servicioHabilitado) {
+      debugPrint('El servicio de ubicación no está habilitado');
+      return;
+    }
+
+    LocationPermission permiso = await Geolocator.checkPermission();
+    if (permiso == LocationPermission.denied) {
+      permiso = await Geolocator.requestPermission();
+      if (permiso == LocationPermission.denied) {
+        debugPrint('Permiso de ubicación denegado');
+        return;
+      }
+    }
+
+    if (permiso == LocationPermission.deniedForever) {
+      debugPrint('Permiso de ubicación denegado permanentemente');
+      return;
+    }
+
+    // Usando LocationSettings en lugar de desiredAccuracy
+    LocationSettings locationSettings = const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 10,
+    );
+
+    Position position = await Geolocator.getCurrentPosition(
+      locationSettings: locationSettings,
+    );
+
+    debugPrint('Lat: ${position.latitude}, Lon: ${position.longitude}');
+    await _enviarUbicacionAlServidor(
+      widget.user['email'],
+      position.latitude,
+      position.longitude,
+    );
+  }
+
+  Future<void> _enviarUbicacionAlServidor(String email, double lat, double lng) async {
+    final url = Uri.parse("https://clubfrance.org.mx/api/guardar_ubicacion.php");
+
+    final response = await http.post(url, body: {
+      'email': email,
+      'latitud': lat.toString(),
+      'longitud': lng.toString(),
+    });
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      debugPrint("Ubicación guardada: ${data['message']}");
+    } else {
+      debugPrint("Error HTTP: ${response.statusCode}");
+    }
+  }
+
   Future<void> _logout(BuildContext context) async {
     await SessionManager.logout();
-    
+
     if (!context.mounted) return;
-    
+
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => const WelcomePage()),
       (Route<dynamic> route) => false,
@@ -81,7 +152,7 @@ class HomePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Hola, ${user['primer_nombre'] ?? ''}",
+              "Hola, ${widget.user['primer_nombre'] ?? ''}",
               style: const TextStyle(
                 fontFamily: 'Montserrat',
                 color: Colors.black87,
@@ -91,7 +162,7 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              "Usuario: ${user['numero_usuario'] ?? ''}",
+              "Usuario: ${widget.user['numero_usuario'] ?? ''}",
               style: const TextStyle(
                 fontFamily: 'Montserrat',
                 color: Colors.black54,
@@ -175,7 +246,7 @@ class HomePage extends StatelessWidget {
               context,
               "Contacto",
               Icons.contact_mail,
-              () => _navigateToPage(context, const ContactPage()), // ✅ Página real
+              () => _navigateToPage(context, const ContactPage()),
             ),
           ],
         ),
@@ -194,7 +265,7 @@ class HomePage extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF000000).withValues(alpha: 0.05), // Fixed line
+            color: const Color.fromRGBO(0, 0, 0, 1).withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -224,14 +295,14 @@ class HomePage extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ProfilePage(email: user['email'] ?? ''),
+            builder: (_) => ProfilePage(email: widget.user['email'] ?? ''),
           ),
         );
         break;
       case 2:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => SettingsPage(user: user)),
+          MaterialPageRoute(builder: (_) => SettingsPage(user: widget.user)),
         );
         break;
     }
@@ -296,3 +367,4 @@ class _PlaceholderPage extends StatelessWidget {
     );
   }
 }
+

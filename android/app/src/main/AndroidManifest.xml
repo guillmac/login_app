@@ -6,6 +6,10 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
 
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+
     <!-- Características opcionales -->
     <uses-feature android:name="android.hardware.fingerprint" android:required="false"/>
     <uses-feature android:name="android.hardware.biometrics" android:required="false"/>
@@ -22,6 +26,11 @@
         android:label="Club France"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <meta-data
+        android:name="com.google.android.geo.API_KEY"
+        android:value="AIzaSyBFzsFQZz3E8j-7hd_NRbeZzbDf1LkEyzg"/>
+
 
         <activity
             android:name=".MainActivity"
