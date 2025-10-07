@@ -206,7 +206,7 @@ class _HomePageState extends State<HomePage> {
               Icons.card_giftcard,
               () => _navigateToPage(
                 context,
-                _PlaceholderPage(title: "L' Espace"),
+                _PlaceholderPage(title: "L'Espace"),
               ),
             ),
             _buildSectionButton(
