@@ -200,6 +200,15 @@ class _HomePageState extends State<HomePage> {
                 const CulturalActivitiesPage(),
               ),
             ),
+             _buildSectionButton(
+              context,
+              "L' Espace",
+              Icons.card_giftcard,
+              () => _navigateToPage(
+                context,
+                _PlaceholderPage(title: "L' Espace"),
+              ),
+            ),
             _buildSectionButton(
               context,
               "Eventos",
