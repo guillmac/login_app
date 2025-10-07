@@ -446,7 +446,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
                 const Icon(Icons.family_restroom, color: Color.fromRGBO(25, 118, 210, 1)),
                 const SizedBox(width: 8),
                 const Text(
-                  "Membresía Familiar",
+                  "Membresía",
                   style: TextStyle(
                     fontFamily: 'Montserrat',
                     fontWeight: FontWeight.bold,
@@ -476,7 +476,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
             ),
             const SizedBox(height: 12),
             const Text(
-              "Miembros incluidos en tu membresía familiar:",
+              "Miembros incluidos en tu membresía:",
               style: TextStyle(
                 fontFamily: 'Montserrat',
                 color: Colors.black54,

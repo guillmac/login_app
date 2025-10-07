@@ -6,7 +6,8 @@ import 'welcome_page.dart';
 import 'settings_page.dart';
 import 'sports_activities_page.dart';
 import 'cultural_activities_page.dart';
-import 'events_page.dart'; // ✅ IMPORTACIÓN AGREGADA
+import 'events_page.dart';
+import 'contact_page.dart'; // ✅ Página real de Contacto
 
 class HomePage extends StatelessWidget {
   final Map<String, dynamic> user;
@@ -132,7 +133,7 @@ class HomePage extends StatelessWidget {
               context,
               "Eventos",
               Icons.event,
-              () => _navigateToPage(context, const EventsPage()), // ✅ CORREGIDO
+              () => _navigateToPage(context, const EventsPage()),
             ),
             _buildSectionButton(
               context,
@@ -174,7 +175,7 @@ class HomePage extends StatelessWidget {
               context,
               "Contacto",
               Icons.contact_mail,
-              () => _navigateToPage(context, _PlaceholderPage(title: "Contacto")),
+              () => _navigateToPage(context, const ContactPage()), // ✅ Página real
             ),
           ],
         ),
@@ -193,7 +194,7 @@ class HomePage extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05), // Fixed line
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
