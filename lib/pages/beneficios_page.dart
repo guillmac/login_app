@@ -9,7 +9,7 @@ class BeneficiosPage extends StatelessWidget {
       appBar: AppBar(title: const Text('Beneficios')),
       body: const Center(
         child: Text(
-          'Descuentos y convenios del club para los usuarios.',
+          'Descuentos y convenios del Club para los usuarios.',
           style: TextStyle(fontSize: 18),
         ),
       ),
