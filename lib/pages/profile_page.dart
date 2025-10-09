@@ -23,16 +23,33 @@ class _ProfilePageState extends State<ProfilePage> {
   bool editing = false;
   File? _newImage;
   final int _selectedIndex = 1;
-  
+
   // Instancia de Logger
   final Logger _logger = Logger();
 
   // Listas de opciones para los dropdowns
   final List<String> _generoOpciones = ['Masculino', 'Femenino', 'Otro'];
-  final List<String> _tipoSangreOpciones = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
+  final List<String> _tipoSangreOpciones = [
+    'O+',
+    'O-',
+    'A+',
+    'A-',
+    'B+',
+    'B-',
+    'AB+',
+    'AB-',
+  ];
   final List<String> _parentescoOpciones = [
-    'Padre', 'Madre', 'Esposo(a)', 'Hijo(a)', 'Hermano(a)',
-    'Abuelo(a)', 'Tío(a)', 'Primo(a)', 'Amigo(a)', 'Otro'
+    'Padre',
+    'Madre',
+    'Esposo(a)',
+    'Hijo(a)',
+    'Hermano(a)',
+    'Abuelo(a)',
+    'Tío(a)',
+    'Primo(a)',
+    'Amigo(a)',
+    'Otro',
   ];
 
   // Listas para alergias y enfermedades crónicas
@@ -67,7 +84,7 @@ class _ProfilePageState extends State<ProfilePage> {
     'Chocolate',
     'Colorantes artificiales',
     'Conservadores',
-    'Otro'
+    'Otro',
   ];
 
   final List<String> _enfermedadesCronicasOpciones = [
@@ -105,7 +122,7 @@ class _ProfilePageState extends State<ProfilePage> {
     'VIH/SIDA',
     'Cáncer',
     'Anemia crónica',
-    'Otra'
+    'Otra',
   ];
 
   // Datos para colonias CDMX
@@ -116,10 +133,14 @@ class _ProfilePageState extends State<ProfilePage> {
 
   // Controladores de texto
   final TextEditingController _primerNombreController = TextEditingController();
-  final TextEditingController _segundoNombreController = TextEditingController();
-  final TextEditingController _primerApellidoController = TextEditingController();
-  final TextEditingController _segundoApellidoController = TextEditingController();
-  final TextEditingController _fechaNacimientoController = TextEditingController();
+  final TextEditingController _segundoNombreController =
+      TextEditingController();
+  final TextEditingController _primerApellidoController =
+      TextEditingController();
+  final TextEditingController _segundoApellidoController =
+      TextEditingController();
+  final TextEditingController _fechaNacimientoController =
+      TextEditingController();
   final TextEditingController _generoController = TextEditingController();
   final TextEditingController _telefonoController = TextEditingController();
   final TextEditingController _calleController = TextEditingController();
@@ -128,12 +149,16 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController _alcaldiaController = TextEditingController();
   final TextEditingController _cpController = TextEditingController();
   final TextEditingController _ciudadController = TextEditingController();
-  final TextEditingController _emergenciaNombreController = TextEditingController();
-  final TextEditingController _emergenciaTelefonoController = TextEditingController();
-  final TextEditingController _emergenciaParentescoController = TextEditingController();
+  final TextEditingController _emergenciaNombreController =
+      TextEditingController();
+  final TextEditingController _emergenciaTelefonoController =
+      TextEditingController();
+  final TextEditingController _emergenciaParentescoController =
+      TextEditingController();
   final TextEditingController _tipoSangreController = TextEditingController();
   final TextEditingController _alergiasController = TextEditingController();
-  final TextEditingController _enfermedadesCronicasController = TextEditingController();
+  final TextEditingController _enfermedadesCronicasController =
+      TextEditingController();
 
   // Variables para manejar los valores seleccionados en dropdowns
   String? _selectedGenero;
@@ -181,12 +206,16 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       _logger.i('Cargando alcaldías...');
       final response = await http.get(
-        Uri.parse("https://clubfrance.org.mx/api/colonias_cdmx.php?action=alcaldias"),
+        Uri.parse(
+          "https://clubfrance.org.mx/api/colonias_cdmx.php?action=alcaldias",
+        ),
       );
 
       final data = jsonDecode(response.body);
       if (data['success'] == true) {
-        _logger.i('Alcaldías cargadas exitosamente: ${data['alcaldias']?.length ?? 0} encontradas');
+        _logger.i(
+          'Alcaldías cargadas exitosamente: ${data['alcaldias']?.length ?? 0} encontradas',
+        );
         setState(() {
           _alcaldiasOpciones = List<String>.from(data['alcaldias']);
           _loadingAlcaldias = false;
@@ -203,21 +232,25 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _cargarColonias(String alcaldia) async {
     if (alcaldia.isEmpty) return;
-    
+
     setState(() => _loadingColonias = true);
     try {
       _logger.i('Cargando colonias para alcaldía: $alcaldia');
       final response = await http.get(
-        Uri.parse("https://clubfrance.org.mx/api/colonias_cdmx.php?action=colonias&alcaldia=${Uri.encodeComponent(alcaldia)}"),
+        Uri.parse(
+          "https://clubfrance.org.mx/api/colonias_cdmx.php?action=colonias&alcaldia=${Uri.encodeComponent(alcaldia)}",
+        ),
       );
 
       final data = jsonDecode(response.body);
       if (data['success'] == true) {
-        _logger.i('Colonias cargadas exitosamente: ${data['colonias']?.length ?? 0} encontradas');
+        _logger.i(
+          'Colonias cargadas exitosamente: ${data['colonias']?.length ?? 0} encontradas',
+        );
         setState(() {
           _coloniasOpciones = List<Map<String, dynamic>>.from(data['colonias']);
           _loadingColonias = false;
-          
+
           // Si ya hay una colonia seleccionada, encontrar el objeto correspondiente
           if (_coloniaController.text.isNotEmpty) {
             _selectedColonia = _coloniasOpciones.firstWhere(
@@ -248,7 +281,7 @@ class _ProfilePageState extends State<ProfilePage> {
       _cpController.text = '';
       _coloniasOpciones = [];
     });
-    
+
     if (newValue != null && newValue.isNotEmpty) {
       _logger.d('Alcaldía cambiada a: $newValue');
       _cargarColonias(newValue);
@@ -257,7 +290,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _onColoniaChanged(Map<String, dynamic>? newValue) {
     if (newValue != null) {
-      _logger.d('Colonia seleccionada: ${newValue['colonia']}, CP: ${newValue['cp']}');
+      _logger.d(
+        'Colonia seleccionada: ${newValue['colonia']}, CP: ${newValue['cp']}',
+      );
       setState(() {
         _selectedColonia = newValue;
         _coloniaController.text = newValue['colonia'] ?? '';
@@ -288,42 +323,70 @@ class _ProfilePageState extends State<ProfilePage> {
           loading = false;
 
           // Inicializar TODOS los controladores con valores limpios
-          _primerNombreController.text = _getValorLimpio(user!['primer_nombre']);
-          _segundoNombreController.text = _getValorLimpio(user!['segundo_nombre']);
-          _primerApellidoController.text = _getValorLimpio(user!['primer_apellido']);
-          _segundoApellidoController.text = _getValorLimpio(user!['segundo_apellido']);
-          _fechaNacimientoController.text = _getValorLimpio(user!['fecha_nacimiento']);
-          
+          _primerNombreController.text = _getValorLimpio(
+            user!['primer_nombre'],
+          );
+          _segundoNombreController.text = _getValorLimpio(
+            user!['segundo_nombre'],
+          );
+          _primerApellidoController.text = _getValorLimpio(
+            user!['primer_apellido'],
+          );
+          _segundoApellidoController.text = _getValorLimpio(
+            user!['segundo_apellido'],
+          );
+          _fechaNacimientoController.text = _getValorLimpio(
+            user!['fecha_nacimiento'],
+          );
+
           final generoValue = _getValorLimpio(user!['genero']);
           _generoController.text = _getGeneroDisplay(generoValue);
-          _selectedGenero = _generoController.text.isEmpty ? null : _generoController.text;
-          
+          _selectedGenero = _generoController.text.isEmpty
+              ? null
+              : _generoController.text;
+
           _telefonoController.text = _getValorLimpio(user!['telefono']);
           _calleController.text = _getValorLimpio(user!['calle']);
           _numeroController.text = _getValorLimpio(user!['numero']);
           _coloniaController.text = _getValorLimpio(user!['colonia']);
           _alcaldiaController.text = _getValorLimpio(user!['alcaldia']);
-          _selectedAlcaldia = _alcaldiaController.text.isEmpty ? null : _alcaldiaController.text;
+          _selectedAlcaldia = _alcaldiaController.text.isEmpty
+              ? null
+              : _alcaldiaController.text;
           _cpController.text = _getValorLimpio(user!['cp']);
           _ciudadController.text = _getValorLimpio(user!['ciudad']);
-          _emergenciaNombreController.text = _getValorLimpio(user!['emergencia_nombre']);
-          _emergenciaTelefonoController.text = _getValorLimpio(user!['emergencia_telefono']);
-          
-          final parentescoValue = _getValorLimpio(user!['emergencia_parentesco']);
+          _emergenciaNombreController.text = _getValorLimpio(
+            user!['emergencia_nombre'],
+          );
+          _emergenciaTelefonoController.text = _getValorLimpio(
+            user!['emergencia_telefono'],
+          );
+
+          final parentescoValue = _getValorLimpio(
+            user!['emergencia_parentesco'],
+          );
           _emergenciaParentescoController.text = parentescoValue;
-          _selectedParentesco = parentescoValue.isEmpty ? null : parentescoValue;
-          
+          _selectedParentesco = parentescoValue.isEmpty
+              ? null
+              : parentescoValue;
+
           final tipoSangreValue = _getValorLimpio(user!['tipo_sangre']);
           _tipoSangreController.text = tipoSangreValue;
-          _selectedTipoSangre = tipoSangreValue.isEmpty ? null : tipoSangreValue;
-          
+          _selectedTipoSangre = tipoSangreValue.isEmpty
+              ? null
+              : tipoSangreValue;
+
           final alergiasValue = _getValorLimpio(user!['alergias']);
           _alergiasController.text = alergiasValue;
           _selectedAlergias = alergiasValue.isEmpty ? null : alergiasValue;
-          
-          final enfermedadesValue = _getValorLimpio(user!['enfermedades_cronicas']);
+
+          final enfermedadesValue = _getValorLimpio(
+            user!['enfermedades_cronicas'],
+          );
           _enfermedadesCronicasController.text = enfermedadesValue;
-          _selectedEnfermedadesCronicas = enfermedadesValue.isEmpty ? null : enfermedadesValue;
+          _selectedEnfermedadesCronicas = enfermedadesValue.isEmpty
+              ? null
+              : enfermedadesValue;
 
           // Cargar colonias si ya hay una alcaldía seleccionada
           if (_alcaldiaController.text.isNotEmpty) {
@@ -353,7 +416,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (valor == null) return "";
     final stringValor = valor.toString().trim();
     if (stringValor.isEmpty) return "";
-    if (stringValor.toLowerCase() == 'null' || 
+    if (stringValor.toLowerCase() == 'null' ||
         stringValor == 'NULL' ||
         stringValor == 'Null' ||
         stringValor == 'n/a' ||
@@ -367,19 +430,27 @@ class _ProfilePageState extends State<ProfilePage> {
   String _getGeneroDisplay(String genero) {
     if (genero.isEmpty) return "";
     switch (genero) {
-      case 'M': return 'Masculino';
-      case 'F': return 'Femenino';
-      case 'O': return 'Otro';
-      default: return genero;
+      case 'M':
+        return 'Masculino';
+      case 'F':
+        return 'Femenino';
+      case 'O':
+        return 'Otro';
+      default:
+        return genero;
     }
   }
 
   String _getGeneroValue(String display) {
     switch (display) {
-      case 'Masculino': return 'M';
-      case 'Femenino': return 'F';
-      case 'Otro': return 'O';
-      default: return 'O';
+      case 'Masculino':
+        return 'M';
+      case 'Femenino':
+        return 'F';
+      case 'Otro':
+        return 'O';
+      default:
+        return 'O';
     }
   }
 
@@ -566,7 +637,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Información principal
             Text(
               "${_primerNombreController.text} ${_primerApellidoController.text}",
@@ -584,49 +655,106 @@ class _ProfilePageState extends State<ProfilePage> {
                 fontFamily: "Montserrat",
               ),
             ),
-            
+
             // Información de membresía
-            _buildInfoCard(
-              "Membresía",
-              Icons.card_membership,
-              [
-                _buildInfoItem("Número de Usuario", user!['numero_usuario']?.toString() ?? ''),
-                _buildInfoItem("Tipo de Membresía", user!['tipo_membresia'] ?? "Individual"),
-                _buildInfoItem("Estado", user!['estatus_membresia'] ?? "Activo"),
-                if (user!['fecha_inicio_membresia'] != null)
-                  _buildInfoItem("Fecha Inicio", user!['fecha_inicio_membresia'] ?? ""),
-                if (user!['fecha_fin_membresia'] != null)
-                  _buildInfoItem("Fecha Fin", user!['fecha_fin_membresia'] ?? ""),
-                if (user!['saldo_pendiente'] != null && user!['saldo_pendiente'] != "0.00")
-                  _buildInfoItem("Saldo Pendiente", "\$${user!['saldo_pendiente']}"),
-              ],
-            ),
+            _buildInfoCard("Membresía", Icons.card_membership, [
+              _buildInfoItem(
+                "Número de Usuario",
+                user!['numero_usuario']?.toString() ?? '',
+              ),
+              _buildInfoItem(
+                "Tipo de Membresía",
+                user!['tipo_membresia'] ?? "Individual",
+              ),
+              _buildInfoItem("Estado", user!['estatus_membresia'] ?? "Activo"),
+              if (user!['fecha_inicio_membresia'] != null)
+                _buildInfoItem(
+                  "Fecha Inicio",
+                  user!['fecha_inicio_membresia'] ?? "",
+                ),
+              if (user!['fecha_fin_membresia'] != null)
+                _buildInfoItem("Fecha Fin", user!['fecha_fin_membresia'] ?? ""),
+              if (user!['saldo_pendiente'] != null &&
+                  user!['saldo_pendiente'] != "0.00")
+                _buildInfoItem(
+                  "Saldo Pendiente",
+                  "\$${user!['saldo_pendiente']}",
+                ),
+            ]),
 
             const SizedBox(height: 24),
 
             // SECCIÓN: INFORMACIÓN PERSONAL
             _buildSectionHeader("Información Personal"),
-            if (editing) _buildField("Primer Nombre", _primerNombreController, editing, Icons.person),
-            if (editing) _buildField("Segundo Nombre", _segundoNombreController, editing, Icons.person_outline),
-            if (editing) _buildField("Primer Apellido", _primerApellidoController, editing, Icons.person),
-            if (editing) _buildField("Segundo Apellido", _segundoApellidoController, editing, Icons.person_outline),
-            
-            _buildField("Fecha de Nacimiento", _fechaNacimientoController, editing, Icons.cake),
-            if (!editing && _fechaNacimientoController.text.isNotEmpty) 
-              _buildStaticInfo("Edad", _calcularEdad() ?? "No especificada", Icons.emoji_people),
-            
+            if (editing)
+              _buildField(
+                "Primer Nombre",
+                _primerNombreController,
+                editing,
+                Icons.person,
+              ),
+            if (editing)
+              _buildField(
+                "Segundo Nombre",
+                _segundoNombreController,
+                editing,
+                Icons.person_outline,
+              ),
+            if (editing)
+              _buildField(
+                "Primer Apellido",
+                _primerApellidoController,
+                editing,
+                Icons.person,
+              ),
+            if (editing)
+              _buildField(
+                "Segundo Apellido",
+                _segundoApellidoController,
+                editing,
+                Icons.person_outline,
+              ),
+
+            _buildField(
+              "Fecha de Nacimiento",
+              _fechaNacimientoController,
+              editing,
+              Icons.cake,
+            ),
+            if (!editing && _fechaNacimientoController.text.isNotEmpty)
+              _buildStaticInfo(
+                "Edad",
+                _calcularEdad() ?? "No especificada",
+                Icons.emoji_people,
+              ),
+
             // GÉNERO CON DROPDOWN
-            if (editing) 
-              _buildDropdownField("Género", _selectedGenero, _generoOpciones, Icons.person_outline, (newValue) {
-                setState(() {
-                  _selectedGenero = newValue;
-                  _generoController.text = newValue ?? '';
-                });
-              }),
+            if (editing)
+              _buildDropdownField(
+                "Género",
+                _selectedGenero,
+                _generoOpciones,
+                Icons.person_outline,
+                (newValue) {
+                  setState(() {
+                    _selectedGenero = newValue;
+                    _generoController.text = newValue ?? '';
+                  });
+                },
+              ),
             if (!editing && _generoController.text.isNotEmpty)
-              _buildStaticInfo("Género", _generoController.text, Icons.person_outline),
-            
-            _buildField("Celular", _telefonoController, editing, Icons.phone_android),
+              _buildStaticInfo(
+                "Género",
+                _generoController.text,
+                Icons.person_outline,
+              ),
+
+            _buildField(
+              "Celular",
+              _telefonoController,
+              editing,
+              Icons.phone_android,
+            ),
 
             const SizedBox(height: 24),
 
@@ -635,84 +763,160 @@ class _ProfilePageState extends State<ProfilePage> {
             if (editing) ...[
               _buildField("Calle", _calleController, editing, Icons.signpost),
               _buildField("Número", _numeroController, editing, Icons.numbers),
-              
+
               // ALACALDÍA CON DROPDOWN
               _buildAlcaldiaDropdown(),
-              
+
               // COLONIA CON DROPDOWN (dependiente de alcaldía)
               _buildColoniaDropdown(),
-              
+
               // CÓDIGO POSTAL (se llena automáticamente)
-              _buildField("Código Postal", _cpController, false, Icons.markunread_mailbox),
+              _buildField(
+                "Código Postal",
+                _cpController,
+                false,
+                Icons.markunread_mailbox,
+              ),
             ] else
-              _buildStaticInfo("Calle y Número", _getDireccionCompleta(), Icons.location_on),
-            
+              _buildStaticInfo(
+                "Calle y Número",
+                _getDireccionCompleta(),
+                Icons.location_on,
+              ),
+
             if (!editing) ...[
               if (_coloniaController.text.isNotEmpty)
-                _buildStaticInfo("Colonia", _coloniaController.text, Icons.home),
+                _buildStaticInfo(
+                  "Colonia",
+                  _coloniaController.text,
+                  Icons.home,
+                ),
               if (_alcaldiaController.text.isNotEmpty)
-                _buildStaticInfo("Alcaldía/Municipio", _alcaldiaController.text, Icons.account_balance),
+                _buildStaticInfo(
+                  "Alcaldía/Municipio",
+                  _alcaldiaController.text,
+                  Icons.account_balance,
+                ),
               if (_cpController.text.isNotEmpty)
-                _buildStaticInfo("Código Postal", _cpController.text, Icons.markunread_mailbox),
+                _buildStaticInfo(
+                  "Código Postal",
+                  _cpController.text,
+                  Icons.markunread_mailbox,
+                ),
             ],
-            
-            _buildField("Ciudad", _ciudadController, editing, Icons.location_city),
+
+            _buildField(
+              "Ciudad",
+              _ciudadController,
+              editing,
+              Icons.location_city,
+            ),
 
             const SizedBox(height: 24),
 
             // SECCIÓN: CONTACTO DE EMERGENCIA
             _buildSectionHeader("Contacto de Emergencia"),
-            _buildField("Nombre Completo", _emergenciaNombreController, editing, Icons.emergency),
-            _buildField("Celular", _emergenciaTelefonoController, editing, Icons.phone_android),
-            
+            _buildField(
+              "Nombre Completo",
+              _emergenciaNombreController,
+              editing,
+              Icons.emergency,
+            ),
+            _buildField(
+              "Celular",
+              _emergenciaTelefonoController,
+              editing,
+              Icons.phone_android,
+            ),
+
             // PARENTESCO CON DROPDOWN
             if (editing)
-              _buildDropdownField("Parentesco", _selectedParentesco, _parentescoOpciones, Icons.family_restroom, (newValue) {
-                setState(() {
-                  _selectedParentesco = newValue;
-                  _emergenciaParentescoController.text = newValue ?? '';
-                });
-              }),
+              _buildDropdownField(
+                "Parentesco",
+                _selectedParentesco,
+                _parentescoOpciones,
+                Icons.family_restroom,
+                (newValue) {
+                  setState(() {
+                    _selectedParentesco = newValue;
+                    _emergenciaParentescoController.text = newValue ?? '';
+                  });
+                },
+              ),
             if (!editing && _emergenciaParentescoController.text.isNotEmpty)
-              _buildStaticInfo("Parentesco", _emergenciaParentescoController.text, Icons.family_restroom),
+              _buildStaticInfo(
+                "Parentesco",
+                _emergenciaParentescoController.text,
+                Icons.family_restroom,
+              ),
 
             const SizedBox(height: 24),
 
             // SECCIÓN: INFORMACIÓN MÉDICA
             _buildSectionHeader("Información Médica"),
-            
+
             // TIPO DE SANGRE CON DROPDOWN (simplificado)
             if (editing)
-              _buildDropdownField("Tipo de Sangre", _selectedTipoSangre, _tipoSangreOpciones, Icons.bloodtype, (newValue) {
-                setState(() {
-                  _selectedTipoSangre = newValue;
-                  _tipoSangreController.text = newValue ?? '';
-                });
-              }),
+              _buildDropdownField(
+                "Tipo de Sangre",
+                _selectedTipoSangre,
+                _tipoSangreOpciones,
+                Icons.bloodtype,
+                (newValue) {
+                  setState(() {
+                    _selectedTipoSangre = newValue;
+                    _tipoSangreController.text = newValue ?? '';
+                  });
+                },
+              ),
             if (!editing && _tipoSangreController.text.isNotEmpty)
-              _buildStaticInfo("Tipo de Sangre", _tipoSangreController.text, Icons.bloodtype),
-            
+              _buildStaticInfo(
+                "Tipo de Sangre",
+                _tipoSangreController.text,
+                Icons.bloodtype,
+              ),
+
             // ALERGIAS CON DROPDOWN
             if (editing)
-              _buildDropdownField("Alergias", _selectedAlergias, _alergiasOpciones, Icons.health_and_safety, (newValue) {
-                setState(() {
-                  _selectedAlergias = newValue;
-                  _alergiasController.text = newValue ?? '';
-                });
-              }),
+              _buildDropdownField(
+                "Alergias",
+                _selectedAlergias,
+                _alergiasOpciones,
+                Icons.health_and_safety,
+                (newValue) {
+                  setState(() {
+                    _selectedAlergias = newValue;
+                    _alergiasController.text = newValue ?? '';
+                  });
+                },
+              ),
             if (!editing && _alergiasController.text.isNotEmpty)
-              _buildStaticInfo("Alergias", _alergiasController.text, Icons.health_and_safety),
-            
+              _buildStaticInfo(
+                "Alergias",
+                _alergiasController.text,
+                Icons.health_and_safety,
+              ),
+
             // ENFERMEDADES CRÓNICAS CON DROPDOWN
             if (editing)
-              _buildDropdownField("Enfermedades Crónicas", _selectedEnfermedadesCronicas, _enfermedadesCronicasOpciones, Icons.medical_services, (newValue) {
-                setState(() {
-                  _selectedEnfermedadesCronicas = newValue;
-                  _enfermedadesCronicasController.text = newValue ?? '';
-                });
-              }),
+              _buildDropdownField(
+                "Enfermedades Crónicas",
+                _selectedEnfermedadesCronicas,
+                _enfermedadesCronicasOpciones,
+                Icons.medical_services,
+                (newValue) {
+                  setState(() {
+                    _selectedEnfermedadesCronicas = newValue;
+                    _enfermedadesCronicasController.text = newValue ?? '';
+                  });
+                },
+              ),
             if (!editing && _enfermedadesCronicasController.text.isNotEmpty)
-              _buildStaticInfo("Enfermedades Crónicas", _enfermedadesCronicasController.text, Icons.medical_services),
+              _buildStaticInfo(
+                "Enfermedades Crónicas",
+                _enfermedadesCronicasController.text,
+                Icons.medical_services,
+              ),
 
             const SizedBox(height: 32),
           ],
@@ -731,9 +935,7 @@ class _ProfilePageState extends State<ProfilePage> {
         decoration: InputDecoration(
           labelText: "Alcaldía/Municipio",
           prefixIcon: const Icon(Icons.account_balance),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           suffixIcon: _loadingAlcaldias
               ? const Padding(
                   padding: EdgeInsets.all(8.0),
@@ -746,10 +948,7 @@ class _ProfilePageState extends State<ProfilePage> {
               : null,
         ),
         items: _alcaldiasOpciones.map((String value) {
-          return DropdownMenuItem<String>(
-            value: value,
-            child: Text(value),
-          );
+          return DropdownMenuItem<String>(value: value, child: Text(value));
         }).toList(),
         onChanged: _onAlcaldiaChanged,
       ),
@@ -765,9 +964,7 @@ class _ProfilePageState extends State<ProfilePage> {
         decoration: InputDecoration(
           labelText: "Colonia",
           prefixIcon: const Icon(Icons.home),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           suffixIcon: _loadingColonias
               ? const Padding(
                   padding: EdgeInsets.all(8.0),
@@ -814,15 +1011,10 @@ class _ProfilePageState extends State<ProfilePage> {
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         items: options.map((String value) {
-          return DropdownMenuItem<String>(
-            value: value,
-            child: Text(value),
-          );
+          return DropdownMenuItem<String>(value: value, child: Text(value));
         }).toList(),
         onChanged: onChanged,
       ),
@@ -834,9 +1026,7 @@ class _ProfilePageState extends State<ProfilePage> {
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
-          Expanded(
-            child: Divider(color: Colors.grey.shade300),
-          ),
+          Expanded(child: Divider(color: Colors.grey.shade300)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
@@ -849,9 +1039,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
           ),
-          Expanded(
-            child: Divider(color: Colors.grey.shade300),
-          ),
+          Expanded(child: Divider(color: Colors.grey.shade300)),
         ],
       ),
     );
@@ -974,7 +1162,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
             )
-          : _buildStaticInfo(label, controller.text.isNotEmpty ? controller.text : "No especificado", icon),
+          : _buildStaticInfo(
+              label,
+              controller.text.isNotEmpty ? controller.text : "No especificado",
+              icon,
+            ),
     );
   }
 
@@ -1017,8 +1209,9 @@ class _ProfilePageState extends State<ProfilePage> {
       final nacimiento = DateTime.parse(fechaNacimiento);
       final ahora = DateTime.now();
       final edad = ahora.year - nacimiento.year;
-      final mesCumple = ahora.month > nacimiento.month || 
-                        (ahora.month == nacimiento.month && ahora.day >= nacimiento.day);
+      final mesCumple =
+          ahora.month > nacimiento.month ||
+          (ahora.month == nacimiento.month && ahora.day >= nacimiento.day);
       return mesCumple ? edad.toString() : (edad - 1).toString();
     } catch (e) {
       _logger.e('Error calculando edad: $e');

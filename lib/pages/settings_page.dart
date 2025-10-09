@@ -148,7 +148,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onPressed: () async {
                 final navigator = Navigator.of(context);
                 final messenger = ScaffoldMessenger.of(context);
-                
+
                 navigator.pop();
                 await SessionManager.clearAllData();
 
