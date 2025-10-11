@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/sport_activity.dart';
 import '../services/sport_service.dart';
+import '../services/reservation_service.dart';
 
 class SportsActivitiesPage extends StatefulWidget {
   const SportsActivitiesPage({super.key});
@@ -13,6 +14,8 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
   late Future<List<SportActivity>> _futureDeportivas;
   List<SportActivity> _actividadesInfantiles = [];
   List<SportActivity> _actividadesAdultos = [];
+  final Map<String, int?> _reservasActivas = {};
+  final String _usuarioId = '1';
 
   @override
   void initState() {
@@ -32,21 +35,250 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
   void _refreshData() {
     setState(() {
       _futureDeportivas = _loadActividadesDeportivas();
+      _reservasActivas.clear();
     });
   }
 
-  // Función para manejar el pago
-  void _handlePago(SportActivity actividad) {
-    // Aquí puedes implementar la lógica de pago
+  void _handleReserva(SportActivity actividad) {
+    final actividadId = actividad.id.toString();
+    
+    if (_reservasActivas[actividadId] == null) {
+      _mostrarSeleccionLugares(actividad);
+    } else {
+      _procesarPago(actividad);
+    }
+  }
+
+  void _mostrarSeleccionLugares(SportActivity actividad) {
+    final actividadId = actividad.id.toString();
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text(
+              "Seleccionar Lugar",
+              style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold),
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: _buildSelectorLugares(actividad, setDialogState, context),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  "Cancelar",
+                  style: TextStyle(fontFamily: 'Montserrat'),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: _reservasActivas[actividadId] != null 
+                    ? () {
+                        Navigator.pop(context);
+                        _procesarPago(actividad);
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromRGBO(13, 71, 161, 1),
+                ),
+                child: const Text(
+                  "Continuar al Pago",
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSelectorLugares(SportActivity actividad, StateSetter setDialogState, BuildContext dialogContext) {
+    final actividadId = actividad.id.toString();
+    final lugarSeleccionado = _reservasActivas[actividadId];
+    
+    return FutureBuilder<List<int>>(
+      future: ReservationService.getLugaresOcupados(actividadId),
+      builder: (context, snapshot) {
+        final lugaresOcupados = snapshot.data ?? [];
+        
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Selecciona un lugar disponible (${actividad.nombreActividad})",
+              style: const TextStyle(
+                fontFamily: 'Montserrat',
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "Lugares Disponibles:",
+              style: TextStyle(
+                fontFamily: 'Montserrat',
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 5,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: 1.0,
+              ),
+              itemCount: 10,
+              itemBuilder: (context, index) {
+                final numeroLugar = index + 1;
+                final estaSeleccionado = lugarSeleccionado == numeroLugar;
+                final estaOcupado = lugaresOcupados.contains(numeroLugar);
+
+                return GestureDetector(
+                  onTap: !estaOcupado 
+                      ? () => _reservarLugar(
+                            actividadId: actividadId,
+                            numeroLugar: numeroLugar,
+                            setDialogState: setDialogState,
+                            dialogContext: dialogContext,
+                          )
+                      : null,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: estaOcupado 
+                          ? Colors.grey[300]
+                          : estaSeleccionado
+                              ? const Color.fromRGBO(13, 71, 161, 1)
+                              : Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: estaSeleccionado 
+                            ? const Color.fromRGBO(13, 71, 161, 1)
+                            : Colors.grey[300]!,
+                        width: estaSeleccionado ? 2 : 1,
+                      ),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '$numeroLugar',
+                            style: TextStyle(
+                              fontFamily: 'Montserrat',
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: estaOcupado 
+                                  ? Colors.grey[600]
+                                  : estaSeleccionado
+                                      ? Colors.white
+                                      : const Color.fromRGBO(13, 71, 161, 1),
+                            ),
+                          ),
+                          if (estaOcupado)
+                            const Icon(
+                              Icons.block,
+                              size: 12,
+                              color: Colors.red,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            if (lugarSeleccionado != null)
+              Text(
+                "Lugar seleccionado: $lugarSeleccionado",
+                style: const TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color.fromRGBO(13, 71, 161, 1),
+                ),
+              ),
+            if (snapshot.connectionState == ConnectionState.waiting)
+              const Padding(
+                padding: EdgeInsets.only(top: 8.0),
+                child: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _reservarLugar({
+    required String actividadId,
+    required int numeroLugar,
+    required StateSetter setDialogState,
+    required BuildContext dialogContext,
+  }) async {
+    setDialogState(() {
+      _reservasActivas[actividadId] = numeroLugar;
+    });
+    
+    final resultado = await ReservationService.reservarLugar(
+      actividadId: actividadId,
+      numeroLugar: numeroLugar,
+      usuarioId: _usuarioId,
+    );
+    
+    if (!resultado['success']) {
+      setDialogState(() {
+        _reservasActivas.remove(actividadId);
+      });
+      
+      // Use the dialog context for showing snackbar in the dialog
+      if (dialogContext.mounted) {
+        ScaffoldMessenger.of(dialogContext).showSnackBar(
+          SnackBar(
+            content: Text(resultado['message'] ?? 'Error al reservar'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } else {
+      if (dialogContext.mounted) {
+        ScaffoldMessenger.of(dialogContext).showSnackBar(
+          SnackBar(
+            content: Text(resultado['message'] ?? 'Lugar reservado exitosamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  void _procesarPago(SportActivity actividad) {
+    final actividadId = actividad.id.toString();
+    final lugarSeleccionado = _reservasActivas[actividadId];
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text(
-          "Procesar Pago",
+          "Confirmar Reserva y Pago",
           style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold),
         ),
         content: Text(
-          "¿Desea proceder con el pago para:\n\n${actividad.nombreActividad}?",
+          "¿Desea proceder con el pago para:\n\n"
+          "${actividad.nombreActividad}\n"
+          "Lugar: $lugarSeleccionado",
           style: const TextStyle(fontFamily: 'Montserrat'),
         ),
         actions: [
@@ -60,22 +292,30 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              // Aquí iría la navegación a la pantalla de pago
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    "Redirigiendo al pago: ${actividad.nombreActividad}",
-                    style: const TextStyle(fontFamily: 'Montserrat'),
+              
+              // Use the widget's context for the main page snackbar
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      "Redirigiendo al pago: ${actividad.nombreActividad} - Lugar $lugarSeleccionado",
+                      style: const TextStyle(fontFamily: 'Montserrat'),
+                    ),
+                    backgroundColor: Colors.green,
                   ),
-                  backgroundColor: Colors.green,
-                ),
-              );
+                );
+                
+                // Limpiar la reserva después del pago
+                setState(() {
+                  _reservasActivas.remove(actividadId);
+                });
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color.fromRGBO(13, 71, 161, 1),
             ),
             child: const Text(
-              "Continuar",
+              "Pagar Ahora",
               style: TextStyle(
                 fontFamily: 'Montserrat',
                 color: Colors.white,
@@ -86,6 +326,36 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
         ],
       ),
     );
+  }
+
+  void _cancelarReserva(SportActivity actividad) async {
+    final actividadId = actividad.id.toString();
+    
+    final resultado = await ReservationService.cancelarReserva(
+      actividadId: actividadId,
+      usuarioId: _usuarioId,
+    );
+    
+    if (!mounted) return;
+    
+    if (resultado['success']) {
+      setState(() {
+        _reservasActivas.remove(actividadId);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message'] ?? "Reserva cancelada para ${actividad.nombreActividad}"),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message'] ?? "Error al cancelar la reserva"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -124,6 +394,8 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
       ),
     );
   }
+
+  // ... (rest of the methods remain the same - _buildContent, _buildListaActividades, etc.)
 
   Widget _buildContent() {
     return DefaultTabController(
@@ -182,7 +454,9 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
     return RefreshIndicator(
       onRefresh: () async {
         await _loadActividadesDeportivas();
-        setState(() {});
+        if (mounted) {
+          setState(() {});
+        }
       },
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
@@ -194,7 +468,12 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
     );
   }
 
+  // ... (rest of the UI builder methods remain unchanged)
   Widget _buildTarjetaActividad(SportActivity actividad, Color color) {
+    final actividadId = actividad.id.toString();
+    final tieneReserva = _reservasActivas.containsKey(actividadId);
+    final lugarSeleccionado = _reservasActivas[actividadId];
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 3,
@@ -237,43 +516,74 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
             
             const SizedBox(height: 12),
             
-            // Información básica
             _buildInfoRow(Icons.person, actividad.nombreProfesor),
             _buildInfoRow(Icons.place, actividad.lugar),
             _buildInfoRow(Icons.people, actividad.edad),
             
-            // Días y Horarios - JUNTOS
             _buildDiasYHorarios(actividad),
             
-            // Grupos (si existen)
             if (actividad.grupos.isNotEmpty && actividad.grupos.length > 1) 
               _buildGrupos(actividad),
             
-            // Costos
             if (actividad.costosMensuales.isNotEmpty) ..._buildCostos(actividad),
             
-            // Avisos
             if (actividad.avisos.isNotEmpty) _buildAvisos(actividad),
             
-            // BOTÓN DE PAGAR - AGREGADO AQUÍ
+            if (tieneReserva)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: _getColorWithOpacity(Colors.green, 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.assignment_turned_in, color: Colors.green, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Lugar reservado: $lugarSeleccionado",
+                      style: const TextStyle(
+                        fontFamily: 'Montserrat',
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
+                      onPressed: () => _cancelarReserva(actividad),
+                      tooltip: "Cancelar reserva",
+                    ),
+                  ],
+                ),
+              ),
+            
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               height: 45,
               child: ElevatedButton.icon(
-                onPressed: () => _handlePago(actividad),
+                onPressed: () => _handleReserva(actividad),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromRGBO(13, 71, 161, 1),
+                  backgroundColor: tieneReserva 
+                      ? Colors.green
+                      : const Color.fromRGBO(13, 71, 161, 1),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                   elevation: 2,
                 ),
-                icon: const Icon(Icons.payment, size: 20),
-                label: const Text(
-                  "PAGAR ACTIVIDAD",
-                  style: TextStyle(
+                icon: Icon(
+                  tieneReserva ? Icons.payment : Icons.assignment_turned_in,
+                  size: 20,
+                ),
+                label: Text(
+                  tieneReserva ? "PAGAR RESERVA" : "RESERVAR ACTIVIDAD",
+                  style: const TextStyle(
                     fontFamily: 'Montserrat',
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -299,7 +609,6 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Días - usa diasFormateados que usa dia1-dia7
                 if (actividad.tieneDias)
                   Text(
                     actividad.diasFormateados,
@@ -310,7 +619,6 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                // Horarios
                 if (actividad.horarios.isNotEmpty)
                   ...actividad.horarios.map((horario) => Text(
                     horario,
@@ -320,7 +628,6 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
                       color: Colors.black54,
                     ),
                   )),
-                // Si no hay información de días ni horarios
                 if (!actividad.tieneDias && actividad.horarios.isEmpty)
                   const Text(
                     'Horario por confirmar',
@@ -520,12 +827,10 @@ class _SportsActivitiesPageState extends State<SportsActivitiesPage> {
     );
   }
 
-  // Método auxiliar para reemplazar .withOpacity() deprecado
   Color _getColorWithOpacity(Color color, double opacity) {
     return Color.alphaBlend(color.withAlpha((opacity * 255).round()), Colors.transparent);
   }
 
-  // Método auxiliar para obtener colores de Material design sin usar el operador []
   Color _getMaterialColor(MaterialColor color, int shade) {
     switch (shade) {
       case 50: return color.shade50;
