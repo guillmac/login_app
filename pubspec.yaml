@@ -39,8 +39,13 @@ dependencies:
   # Biometría (huella o rostro)
   local_auth: ^2.2.5
 
-  # NUEVA DEPENDENCIA: Almacenamiento seguro para credenciales biométricas
+  # Almacenamiento seguro para credenciales biométricas
   flutter_secure_storage: ^9.0.0
+
+  # NUEVAS DEPENDENCIAS: Ubicación en background
+  android_alarm_manager_plus: ^5.0.0
+  workmanager: ^0.5.1
+  background_fetch: 1.4.0
 
 dev_dependencies:
   flutter_test:

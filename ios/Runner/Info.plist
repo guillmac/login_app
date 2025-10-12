@@ -2,13 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Necesitamos acceder a tu ubicación para ofrecer una mejor experiencia.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>La aplicación requiere acceso continuo a la ubicación.</string>
-
-
+	<!-- CONFIGURACIÓN BÁSICA DE LA APP -->
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -20,7 +14,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>login_app</string>
+	<string>Club France</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -31,6 +25,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	
+	<!-- CONFIGURACIÓN DE INTERFAZ -->
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -38,8 +34,6 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
@@ -48,80 +42,51 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	
+	<!-- CONFIGURACIONES DE FLUTTER -->
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	
-	<!-- 🔐 CONFIGURACIONES DE SEGURIDAD Y BIOMETRÍA -->
-	<key>NSFaceIDUsageDescription</key>
-	<string>Necesitamos acceso a Face ID para autenticarte de forma segura en la aplicación</string>
-	
-	<!-- 📸 PERMISOS PARA CÁMARA Y GALERÍA (si usas image_picker) -->
-	<key>NSCameraUsageDescription</key>
-	<string>Necesitamos acceso a la cámara para tomar fotos de perfil</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Necesitamos acceso a la galería para seleccionar fotos de perfil</string>
-	
-	<!-- 📍 PERMISOS DE UBICACIÓN (si usas geolocator) -->
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Necesitamos acceso a tu ubicación para ofrecerte servicios personalizados</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Necesitamos acceso a tu ubicación en todo momento para ofrecerte servicios personalizados</string>
-	
-	<!-- 🌐 CONFIGURACIÓN PARA HTTP (si usas APIs no seguras) -->
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<false/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>clubfrance.org.mx</key>
-			<dict>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
-				<false/>
-				<key>NSTemporaryExceptionMinimumTLSVersion</key>
-				<string>TLSv1.2</string>
-				<key>NSTemporaryExceptionRequiresForwardSecrecy</key>
-				<false/>
-			</dict>
-		</dict>
-	</dict>
-	
-	<!-- 🔒 CONFIGURACIÓN PARA KEYCHAIN (flutter_secure_storage) -->
-	<key>keychain-access-groups</key>
-	<array>
-		<string>$(AppIdentifierPrefix)com.example.login_app</string>
-	</array>
-	
-	<!-- 📱 CONFIGURACIÓN ADICIONAL PARA FLUTTER -->
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
 	
-	<!-- 🎨 CONFIGURACIÓN DE INTERFAZ -->
-	<key>UIUserInterfaceStyle</key>
-	<string>Light</string>
+	<!-- PERMISOS DE PRIVACIDAD - OBLIGATORIOS PARA UBICACIÓN -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>Usa Face ID para iniciar sesión de forma segura</string>
 	
-	<!-- 🚫 CONFIGURACIÓN PARA EVITAR CAPTURAS DE PANTALLA EN APLICACIÓN -->
-	<key>UIApplicationSceneManifest</key>
+	<!-- PERMISOS DE UBICACIÓN (SOLUCIONAN EL ERROR) -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Esta app requiere acceso a tu ubicación para registrar tu asistencia y proporcionar servicios basados en ubicación</string>
+	
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Esta app requiere acceso continuo a tu ubicación para funcionalidades en segundo plano como el registro automático de asistencia</string>
+	
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Esta app requiere acceso continuo a tu ubicación para funcionalidades en segundo plano como el registro automático de asistencia</string>
+	
+	<!-- CONFIGURACIONES PARA EJECUCIÓN EN SEGUNDO PLANO -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+		<string>location</string>
+		<string>remote-notification</string>
+	</array>
+	
+	<!-- CONFIGURACIÓN PARA android_alarm_manager_plus -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER).background-task</string>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER).alarm-task</string>
+	</array>
+	
+	<!-- CONFIGURACIÓN DE SEGURIDAD DE RED -->
+	<key>NSAppTransportSecurity</key>
 	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
-		<key>UISceneConfigurations</key>
-		<dict>
-			<key>UIWindowSceneSessionRoleApplication</key>
-			<array>
-				<dict>
-					<key>UISceneConfigurationName</key>
-					<string>Default Configuration</string>
-					<key>UISceneDelegateClassName</key>
-					<string>FlutterSceneDelegate</string>
-				</dict>
-			</array>
-		</dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
 	</dict>
-
+	
 </dict>
 </plist>

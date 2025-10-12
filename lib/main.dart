@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'pages/welcome_page.dart'; // Importa WelcomePage
+import 'pages/welcome_page.dart'; // WelcomePage original
 
 void main() {
   runApp(const LoginApp());
@@ -14,10 +14,9 @@ class LoginApp extends StatelessWidget {
       title: 'Club France',
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-        fontFamily: 'Montserrat', // Agregué esta línea para consistencia
+        fontFamily: 'Montserrat', // Agregar la fuente si es necesaria
       ),
-      home: const WelcomePage(), // Cambiado de LoginPage a WelcomePage
+      home: const WelcomePage(), // WelcomePage ORIGINAL
     );
   }
 }

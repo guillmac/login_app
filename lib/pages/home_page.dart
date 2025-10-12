@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'profile_page.dart';
 import 'payments_page.dart';
@@ -11,7 +14,8 @@ import 'settings_page.dart';
 import 'sports_activities_page.dart';
 import 'cultural_activities_page.dart';
 import 'events_page.dart';
-import 'contact_page.dart'; // Página real de Contacto
+import 'contact_page.dart';
+import '../services/background_location_service.dart';
 
 class HomePage extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -23,69 +27,319 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  bool _locationServicesInitialized = false;
+  StreamSubscription<Position>? _locationSubscription;
+  DateTime? _lastLocationTime;
+  Position? _lastLocation;
+  bool _serverErrorDetected = false;
+
   @override
   void initState() {
     super.initState();
-    _obtenerUbicacion();
+    _initializeLocationServices();
   }
 
-  Future<void> _obtenerUbicacion() async {
-    bool servicioHabilitado = await Geolocator.isLocationServiceEnabled();
-    if (!servicioHabilitado) {
-      debugPrint('El servicio de ubicación no está habilitado');
-      return;
-    }
+  Future<void> _initializeLocationServices() async {
+    if (_locationServicesInitialized) return;
+    
+    // Guardar email para uso en background
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_email', widget.user['email'] ?? '');
+    
+    // Enviar ubicaciones pendientes al iniciar
+    await BackgroundLocationService.sendAllPendingLocations();
+    
+    // ✅ SOLO UNA VEZ: Obtener ubicación actual al entrar al Home
+    await _obtenerUbicacionUnaVez();
+    
+    // ✅ Iniciar MONITOREO CONTINUO con filtros
+    await _startLocationMonitoring();
+    
+    setState(() {
+      _locationServicesInitialized = true;
+    });
+  }
 
-    LocationPermission permiso = await Geolocator.checkPermission();
-    if (permiso == LocationPermission.denied) {
-      permiso = await Geolocator.requestPermission();
+  Future<void> _obtenerUbicacionUnaVez() async {
+    try {
+      bool servicioHabilitado = await Geolocator.isLocationServiceEnabled();
+      if (!servicioHabilitado) {
+        debugPrint('📍 Servicio de ubicación no disponible');
+        return;
+      }
+
+      LocationPermission permiso = await Geolocator.checkPermission();
       if (permiso == LocationPermission.denied) {
-        debugPrint('Permiso de ubicación denegado');
+        permiso = await Geolocator.requestPermission();
+        if (permiso == LocationPermission.denied) {
+          debugPrint('📍 Permisos de ubicación denegados');
+          return;
+        }
+      }
+
+      if (permiso == LocationPermission.deniedForever) {
+        debugPrint('📍 Permisos de ubicación denegados permanentemente');
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 0,
+        ),
+      ).timeout(const Duration(seconds: 15));
+
+      debugPrint('📍 Ubicación INICIAL obtenida UNA VEZ: Lat: ${position.latitude}, Lon: ${position.longitude}');
+      
+      // ✅ Guardar como última ubicación para control de distancia
+      _lastLocation = position;
+      _lastLocationTime = DateTime.now();
+      
+      await _enviarUbicacionConReintentos(
+        widget.user['email'] ?? '',
+        position.latitude,
+        position.longitude,
+      );
+    } catch (e) {
+      debugPrint('❌ Error obteniendo ubicación inicial: $e');
+    }
+  }
+
+  Future<void> _startLocationMonitoring() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.whileInUse && 
+          permission != LocationPermission.always) {
+        return;
+      }
+
+      // ✅ Configurar stream con filtros
+      _locationSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.best,
+          distanceFilter: 10, // ✅ Solo actualiza cada 10 metros
+        ),
+      ).listen(
+        (Position position) {
+          _procesarNuevaUbicacion(position);
+        },
+        onError: (error) {
+          debugPrint('❌ Error en monitoreo de ubicación: $error');
+        },
+      );
+
+      debugPrint('📍 Monitoreo de ubicación iniciado (10m / 15min)');
+    } catch (e) {
+      debugPrint('❌ Error iniciando monitoreo: $e');
+    }
+  }
+
+  void _procesarNuevaUbicacion(Position newPosition) {
+    final now = DateTime.now();
+    
+    // ✅ Verificar filtro de tiempo (15 minutos)
+    if (_lastLocationTime != null) {
+      final timeDifference = now.difference(_lastLocationTime!);
+      if (timeDifference.inMinutes < 15) {
+        debugPrint('📍 Ubicación ignorada - Filtro tiempo: ${timeDifference.inMinutes}min');
         return;
       }
     }
 
-    if (permiso == LocationPermission.deniedForever) {
-      debugPrint('Permiso de ubicación denegado permanentemente');
+    // ✅ Verificar filtro de distancia (10 metros)
+    if (_lastLocation != null) {
+      final distance = Geolocator.distanceBetween(
+        _lastLocation!.latitude,
+        _lastLocation!.longitude,
+        newPosition.latitude,
+        newPosition.longitude,
+      );
+      
+      if (distance < 10) {
+        debugPrint('📍 Ubicación ignorada - Filtro distancia: ${distance.toStringAsFixed(1)}m');
+        return;
+      }
+    }
+
+    // ✅ PASÓ LOS FILTROS - Procesar ubicación
+    debugPrint('📍 Nueva ubicación PROCESADA: Lat: ${newPosition.latitude}, Lon: ${newPosition.longitude}');
+    
+    // Actualizar controles
+    _lastLocation = newPosition;
+    _lastLocationTime = now;
+    
+    // Enviar al servidor
+    _enviarUbicacionConReintentos(
+      widget.user['email'] ?? '',
+      newPosition.latitude,
+      newPosition.longitude,
+    );
+  }
+
+  Future<void> _enviarUbicacionConReintentos(String email, double lat, double lng, {int maxIntentos = 1}) async {
+    // ✅ VERIFICAR CONEXIÓN A INTERNET PRIMERO
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isEmpty) {
+        debugPrint('🌐 Sin conexión a internet, guardando localmente');
+        await _guardarUbicacionPendiente(email, lat, lng);
+        return;
+      }
+    } catch (e) {
+      debugPrint('🌐 Error de conexión: $e, guardando localmente');
+      await _guardarUbicacionPendiente(email, lat, lng);
       return;
     }
 
-    // Usando LocationSettings en lugar de desiredAccuracy
-    LocationSettings locationSettings = const LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 10,
-    );
+    // ✅ EVITAR SPAM SI EL SERVIDOR ESTÁ CAÍDO
+    if (_serverErrorDetected) {
+      debugPrint('🔄 Servidor con problemas conocidos, guardando localmente');
+      await _guardarUbicacionPendiente(email, lat, lng);
+      return;
+    }
 
-    Position position = await Geolocator.getCurrentPosition(
-      locationSettings: locationSettings,
-    );
-
-    debugPrint('Lat: ${position.latitude}, Lon: ${position.longitude}');
-    await _enviarUbicacionAlServidor(
-      widget.user['email'],
-      position.latitude,
-      position.longitude,
-    );
+    for (int intento = 1; intento <= maxIntentos; intento++) {
+      try {
+        bool exito = await _enviarUbicacionAlServidor(email, lat, lng);
+        if (exito) {
+          debugPrint('✅ Ubicación enviada exitosamente');
+          return;
+        } else {
+          debugPrint('🔄 Reintentando ubicación (intento $intento/$maxIntentos)');
+          if (intento < maxIntentos) {
+            await Future.delayed(const Duration(seconds: 3));
+          }
+        }
+      } catch (e) {
+        debugPrint('❌ Error en intento $intento: $e');
+        if (intento < maxIntentos) {
+          await Future.delayed(const Duration(seconds: 3));
+        }
+      }
+    }
+    
+    // Si todos los intentos fallan, guardar localmente
+    await _guardarUbicacionPendiente(email, lat, lng);
   }
 
-  Future<void> _enviarUbicacionAlServidor(String email, double lat, double lng) async {
-    final url = Uri.parse("https://clubfrance.org.mx/api/guardar_ubicacion.php");
+  Future<bool> _enviarUbicacionAlServidor(String email, double lat, double lng) async {
+    try {
+      final url = Uri.parse("https://clubfrance.org.mx/api/guardar_ubicacion.php");
 
-    final response = await http.post(url, body: {
-      'email': email,
-      'latitud': lat.toString(),
-      'longitud': lng.toString(),
-    });
+      // ✅ ENVIAR DATOS COMO NÚMEROS (NO STRINGS)
+      final Map<String, dynamic> requestBody = {
+        'email': email,
+        'latitud': lat, // ✅ Enviar como número, no como string
+        'longitud': lng, // ✅ Enviar como número, no como string
+        'fecha': DateTime.now().toIso8601String(),
+        'tipo': 'monitoreo',
+      };
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      debugPrint("Ubicación guardada: ${data['message']}");
-    } else {
-      debugPrint("Error HTTP: ${response.statusCode}");
+      debugPrint('📤 Enviando datos: ${jsonEncode(requestBody)}');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(requestBody),
+      ).timeout(const Duration(seconds: 10));
+
+      debugPrint('📥 Respuesta recibida - Status: ${response.statusCode}');
+      debugPrint('📥 Body: ${response.body}');
+
+      // ✅ MEJOR MANEJO DE RESPUESTAS
+      if (response.body.isEmpty || response.body.trim().isEmpty) {
+        debugPrint('❌ Servidor respondió vacío');
+        
+        // Si es error del servidor, marcar como problemático
+        if (response.statusCode >= 500) {
+          _serverErrorDetected = true;
+          // Reactivar después de 5 minutos
+          Future.delayed(const Duration(minutes: 5), () {
+            _serverErrorDetected = false;
+            debugPrint('🔄 Reactivando envíos al servidor');
+          });
+        }
+        return false;
+      }
+
+      // ✅ VERIFICAR STATUS CODE
+      if (response.statusCode == 200) {
+        try {
+          final data = jsonDecode(response.body);
+          if (data['success'] == true) {
+            debugPrint("✅ Ubicación guardada: ${data['message']}");
+            return true;
+          } else {
+            debugPrint("❌ Error del servidor: ${data['message']}");
+            return false;
+          }
+        } catch (e) {
+          debugPrint('❌ Error parseando JSON: $e');
+          // Si el status es 200 pero no puede parsear, podría ser éxito
+          return true;
+        }
+      } else if (response.statusCode == 400) {
+        debugPrint('❌ Error 400 - Datos inválidos');
+        try {
+          final data = jsonDecode(response.body);
+          debugPrint('❌ Detalles: ${data['message']}');
+        } catch (_) {}
+        return false;
+      } else {
+        debugPrint('❌ Error HTTP ${response.statusCode}');
+        
+        // Marcar error del servidor para evitar spam
+        if (response.statusCode >= 500) {
+          _serverErrorDetected = true;
+          Future.delayed(const Duration(minutes: 5), () {
+            _serverErrorDetected = false;
+          });
+        }
+        return false;
+      }
+    } catch (e) {
+      debugPrint('❌ Error enviando ubicación: $e');
+      return false;
     }
   }
 
+  Future<void> _guardarUbicacionPendiente(String email, double lat, double lng) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final locations = prefs.getStringList('pending_locations') ?? [];
+      
+      final locationData = {
+        'email': email,
+        'latitud': lat,
+        'longitud': lng,
+        'fecha': DateTime.now().toIso8601String(),
+        'intentos': 0,
+        'tipo': 'monitoreo',
+      };
+      
+      locations.add(jsonEncode(locationData));
+      await prefs.setStringList('pending_locations', locations);
+      debugPrint('📍 Ubicación guardada localmente para reintento posterior');
+    } catch (e) {
+      debugPrint('❌ Error guardando ubicación local: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _locationSubscription?.cancel();
+    debugPrint('📍 Monitoreo de ubicación detenido');
+    super.dispose();
+  }
+
   Future<void> _logout(BuildContext context) async {
+    await BackgroundLocationService.stopBackgroundLocationService();
     await SessionManager.logout();
 
     if (!context.mounted) return;
@@ -101,23 +355,31 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: const Color(0xFF1a1a1a),
           title: const Text(
             "Cerrar Sesión",
             style: TextStyle(
               fontFamily: 'Montserrat',
               fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
           content: const Text(
             "¿Estás seguro de que quieres cerrar sesión?",
-            style: TextStyle(fontFamily: 'Montserrat'),
+            style: TextStyle(
+              fontFamily: 'Montserrat',
+              color: Colors.white70,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text(
                 "Cancelar",
-                style: TextStyle(fontFamily: 'Montserrat'),
+                style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  color: Colors.white70,
+                ),
               ),
             ),
             TextButton(
@@ -127,7 +389,11 @@ class _HomePageState extends State<HomePage> {
               },
               child: const Text(
                 "Cerrar Sesión",
-                style: TextStyle(fontFamily: 'Montserrat', color: Colors.red),
+                style: TextStyle(
+                  fontFamily: 'Montserrat', 
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -173,8 +439,13 @@ class _HomePageState extends State<HomePage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.black87),
+            icon: const Icon(
+              Icons.logout, 
+              color: Colors.black87,
+              size: 28,
+            ),
             onPressed: () => _showLogoutConfirmation(context),
+            tooltip: 'Cerrar sesión',
           ),
         ],
       ),
@@ -200,7 +471,7 @@ class _HomePageState extends State<HomePage> {
                 const CulturalActivitiesPage(),
               ),
             ),
-             _buildSectionButton(
+            _buildSectionButton(
               context,
               "L' Espace",
               Icons.card_giftcard,
@@ -274,7 +545,7 @@ class _HomePageState extends State<HomePage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color.fromRGBO(0, 0, 0, 1).withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -284,13 +555,24 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         currentIndex: 0,
-        selectedItemColor: const Color.fromRGBO(25, 118, 210, 1),
+        selectedItemColor: const Color(0xFF1976D2),
         unselectedItemColor: Colors.grey,
+        selectedLabelStyle: const TextStyle(fontFamily: 'Montserrat'),
+        unselectedLabelStyle: const TextStyle(fontFamily: 'Montserrat'),
         onTap: (index) => _onBottomNavTap(context, index),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Inicio"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Config."),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: "Inicio",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: "Perfil",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: "Config.",
+          ),
         ],
       ),
     );
@@ -327,26 +609,39 @@ class _HomePageState extends State<HomePage> {
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color.fromRGBO(227, 242, 253, 1),
-          foregroundColor: const Color.fromRGBO(13, 71, 161, 1),
+          backgroundColor: const Color(0xFFE3F2FD),
+          foregroundColor: const Color(0xFF0D47A1),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+          elevation: 1,
+          shadowColor: Colors.black.withOpacity(0.1),
         ),
         onPressed: onTap,
         child: Row(
           children: [
-            Icon(icon, size: 28, color: const Color.fromRGBO(13, 71, 161, 1)),
+            Icon(
+              icon, 
+              size: 28, 
+              color: const Color(0xFF0D47A1),
+            ),
             const SizedBox(width: 16),
-            Text(
-              label,
-              style: const TextStyle(
-                fontFamily: 'Montserrat',
-                fontSize: 16,
-                color: Colors.black87,
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
               ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Color(0xFF0D47A1),
             ),
           ],
         ),
@@ -363,17 +658,82 @@ class _PlaceholderPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(title, style: const TextStyle(fontFamily: 'Montserrat')),
+        title: Text(
+          title, 
+          style: const TextStyle(
+            fontFamily: 'Montserrat',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
+        elevation: 0,
       ),
-      body: Center(
-        child: Text(
-          "Aquí irá la pantalla de $title",
-          style: const TextStyle(fontSize: 18, fontFamily: 'Montserrat'),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF1a1a1a),
+              Color(0xFF2d2d2d),
+              Colors.black,
+            ],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.construction,
+                size: 80,
+                color: Colors.amber.withOpacity(0.7),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                "Próximamente: $title",
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontFamily: 'Montserrat',
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "Estamos trabajando en esta funcionalidad\npara ofrecerte la mejor experiencia",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white70,
+                  fontFamily: 'Montserrat',
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                ),
+                child: const Text(
+                  "Volver al Inicio",
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-

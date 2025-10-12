@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
 import '../utils/session_manager.dart';
 import 'home_page.dart';
+import 'verification_code_page.dart'; // Añade esta importación
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,6 +19,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   final _passwordController = TextEditingController();
   bool _loading = false;
   bool _canUseBiometric = false;
+  bool _isRecoveringPassword = false;
 
   final LocalAuthentication auth = LocalAuthentication();
 
@@ -27,14 +29,12 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   // Sistema de logging mejorado
   void _logInfo(String message) {
     if (kDebugMode) {
-      // Solo se ejecuta en modo debug
       debugPrint('ℹ️ LOGIN: $message');
     }
   }
 
   void _logError(String message, [dynamic error]) {
     if (kDebugMode) {
-      // Solo se ejecuta en modo debug
       if (error != null) {
         debugPrint('❌ LOGIN ERROR: $message - $error');
       } else {
@@ -45,7 +45,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   void _logSuccess(String message) {
     if (kDebugMode) {
-      // Solo se ejecuta en modo debug
       debugPrint('✅ LOGIN SUCCESS: $message');
     }
   }
@@ -68,6 +67,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
     _shineController.dispose();
     super.dispose();
   }
@@ -93,13 +94,12 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   }
 
   Future<void> _login() async {
-    // Verificar campos vacíos - no necesita mounted porque es síncrono
+    // Verificar campos vacíos
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Ingresa correo y contraseña")),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Ingresa correo y contraseña")),
+      );
       return;
     }
 
@@ -153,57 +153,57 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         _logError('Error en login API: $message');
 
         if (!mounted) return;
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(message)));
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
       _logError('Error de conexión en login', e);
 
       if (!mounted) return;
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error de conexión: ${e.toString()}")),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error de conexión: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
 
     if (!mounted) return;
     setState(() => _loading = false);
   }
 
-  /// 🔑 Login con huella/rostro - CORREGIDO
+  /// 🔑 Login con huella/rostro
   Future<void> _loginBiometric() async {
     try {
       // VERIFICAR SI PUEDE USAR BIOMETRÍA
       if (!_canUseBiometric) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "Primero inicia sesión con correo/contraseña para habilitar el login biométrico",
-              ),
-              duration: Duration(seconds: 3),
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Primero inicia sesión con correo/contraseña para habilitar el login biométrico",
             ),
-          );
-        }
+            duration: Duration(seconds: 3),
+          ),
+        );
         return;
       }
 
       // VERIFICAR SI EL BIOMÉTRICO ESTÁ HABILITADO EN CONFIGURACIÓN
       final bool biometricEnabled = await SessionManager.isBiometricEnabled();
       if (!biometricEnabled) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "El login biométrico está desactivado en la configuración",
-              ),
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "El login biométrico está desactivado en la configuración",
             ),
-          );
-        }
+          ),
+        );
         return;
       }
 
@@ -221,13 +221,12 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         );
       } else {
         _logError('Biometría no disponible en este dispositivo');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Biometría no disponible en este dispositivo"),
-            ),
-          );
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Biometría no disponible en este dispositivo"),
+          ),
+        );
         return;
       }
 
@@ -242,13 +241,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         if (email == null || password == null) {
           _logError('No se encontraron credenciales guardadas para biometría');
           if (!mounted) return;
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("No se encontraron credenciales guardadas"),
-              ),
-            );
-          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("No se encontraron credenciales guardadas"),
+            ),
+          );
           setState(() => _loading = false);
           return;
         }
@@ -290,11 +287,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             _logError('Error en login biométrico API: $message');
 
             if (!mounted) return;
-            if (mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(message)));
-            }
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(message)),
+            );
 
             // SI FALLA EL LOGIN, LIMPIAR DATOS BIOMÉTRICOS
             _logInfo('Limpiando datos biométricos por fallo de autenticación');
@@ -305,11 +300,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           _logError('Error de conexión en login biométrico', e);
 
           if (!mounted) return;
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Error de conexión: ${e.toString()}")),
-            );
-          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error de conexión: ${e.toString()}")),
+          );
         }
 
         if (!mounted) return;
@@ -321,13 +314,185 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       _logError('Error en proceso biométrico', e);
 
       if (!mounted) return;
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error biométrico: ${e.toString()}")),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error biométrico: ${e.toString()}")),
+      );
       setState(() => _loading = false);
     }
+  }
+
+  /// 🔐 Función para recuperar contraseña - ACTUALIZADA para usar código de verificación
+  Future<void> _recoverPassword(String email) async {
+    if (!mounted) return;
+    setState(() => _isRecoveringPassword = true);
+
+    try {
+      _logInfo('Solicitando recuperación de contraseña para: $email');
+
+      final response = await http.post(
+        Uri.parse("https://clubfrance.org.mx/api/recover_password.php"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": email.trim(),
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['success'] == true) {
+        _logSuccess('Código de verificación enviado exitosamente');
+        
+        if (!mounted) return;
+        
+        // Cerrar el diálogo actual
+        Navigator.pop(context);
+        
+        // Navegar a la página de verificación de código
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VerificationCodePage(email: email),
+          ),
+        );
+      } else {
+        final message = data['message'] ?? "Error al recuperar contraseña";
+        _logError('Error en recuperación de contraseña: $message');
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      _logError('Error de conexión en recuperación de contraseña', e);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error de conexión: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+
+    if (!mounted) return;
+    setState(() => _isRecoveringPassword = false);
+  }
+
+  /// 🎨 Mostrar diálogo de recuperación de contraseña
+  void _showRecoverPasswordDialog() {
+    final recoverEmailController = TextEditingController(text: _emailController.text);
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1a1a1a),
+            title: const Text(
+              "Recuperar Contraseña",
+              style: TextStyle(
+                color: Colors.white,
+                fontFamily: 'Montserrat',
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Ingresa tu correo electrónico registrado y te enviaremos un código de verificación para restablecer tu contraseña.",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontFamily: 'Montserrat',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: recoverEmailController,
+                  keyboardType: TextInputType.emailAddress,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'Montserrat',
+                  ),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(
+                      Icons.email,
+                      color: Colors.white70,
+                    ),
+                    labelText: "Correo electrónico",
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Colors.white54,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Colors.amber,
+                      ),
+                    ),
+                    errorText: _validateEmail(recoverEmailController.text) ? null : "Ingresa un correo válido",
+                  ),
+                  onChanged: (value) {
+                    setDialogState(() {});
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: _isRecoveringPassword ? null : () => Navigator.pop(context),
+                child: const Text(
+                  "Cancelar",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontFamily: 'Montserrat',
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: _isRecoveringPassword || !_validateEmail(recoverEmailController.text) 
+                    ? null 
+                    : () => _recoverPassword(recoverEmailController.text),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber,
+                  foregroundColor: Colors.black,
+                ),
+                child: _isRecoveringPassword
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          color: Colors.black,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        "Enviar código",
+                        style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  bool _validateEmail(String email) {
+    if (email.isEmpty) return false;
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    return emailRegex.hasMatch(email);
   }
 
   Widget _shineButton({
@@ -349,6 +514,15 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     colors: [Colors.grey.shade600, Colors.grey.shade400],
                   ),
             borderRadius: BorderRadius.circular(16),
+            boxShadow: enabled
+                ? [
+                    BoxShadow(
+                      color: gradient.colors.last.withAlpha(128),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]
+                : null,
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
@@ -382,9 +556,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              const Color.fromRGBO(255, 255, 255, 0.0),
-                              const Color.fromRGBO(255, 255, 255, 0.15),
-                              const Color.fromRGBO(255, 255, 255, 0.0),
+                              Colors.transparent,
+                              Color.alphaBlend(Colors.white.withAlpha(25), Colors.transparent),
+                              Colors.transparent,
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -407,9 +581,30 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     return Scaffold(
       body: Stack(
         children: [
+          // FONDO
           Positioned.fill(
-            child: Image.asset("assets/images/1.jpg", fit: BoxFit.cover),
+            child: Image.asset(
+              "assets/images/1.jpg", 
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFF1a1a1a),
+                        Color(0xFF2d2d2d),
+                        Colors.black,
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
+          
+          // LOGO
           Positioned(
             top: 40,
             left: 20,
@@ -418,8 +613,31 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               width: 160,
               height: 70,
               fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: 160,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'CLUB FRANCE',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        fontFamily: 'Montserrat',
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
+          
+          // FORMULARIO DE LOGIN
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -457,7 +675,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(
-                                color: Colors.yellow,
+                                color: Colors.amber,
                               ),
                             ),
                           ),
@@ -486,7 +704,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(
-                                color: Colors.yellow,
+                                color: Colors.amber,
                               ),
                             ),
                           ),
@@ -494,7 +712,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         const SizedBox(height: 24),
                         _loading
                             ? const CircularProgressIndicator(
-                                color: Colors.yellow,
+                                color: Colors.amber,
+                                strokeWidth: 2,
                               )
                             : _shineButton(
                                 text: "Ingresar",
@@ -532,12 +751,14 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                           ),
                         const SizedBox(height: 16),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: _showRecoverPasswordDialog,
                           child: const Text(
                             "¿Olvidaste tu contraseña?",
                             style: TextStyle(
-                              color: Colors.white70,
+                              color: Colors.amber,
                               fontFamily: 'Montserrat',
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
                             ),
                           ),
                         ),

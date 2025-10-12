@@ -69,6 +69,11 @@ class _WelcomePageState extends State<WelcomePage>
     _controller.forward();
   }
 
+  void _navigateToRegistration() {
+    // Navegar a la página de registro (a implementar)
+    // Navigator.push(context, MaterialPageRoute(builder: (_) => RegistrationPage()));
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -97,17 +102,10 @@ class _WelcomePageState extends State<WelcomePage>
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
-              BoxShadow(
-                color: gradient.colors.first.withAlpha(51),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
             ],
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            splashColor: Colors.white24,
-            highlightColor: Colors.white10,
             onTap: onPressed,
             child: Stack(
               children: [
@@ -121,13 +119,6 @@ class _WelcomePageState extends State<WelcomePage>
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: textColor,
-                      shadows: const [
-                        Shadow(
-                          color: Colors.black26,
-                          blurRadius: 2,
-                          offset: Offset(1, 1),
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -144,9 +135,9 @@ class _WelcomePageState extends State<WelcomePage>
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            const Color.fromARGB(0, 255, 255, 255),
-                            const Color.fromARGB(38, 255, 255, 255),
-                            const Color.fromARGB(0, 255, 255, 255),
+                            Colors.transparent,
+                            Color.alphaBlend(Colors.white.withAlpha(25), Colors.transparent),
+                            Colors.transparent,
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -170,9 +161,31 @@ class _WelcomePageState extends State<WelcomePage>
       backgroundColor: Colors.black,
       body: Stack(
         children: [
+          // FONDO CON FALLBACK PARA iOS
           Positioned.fill(
-            child: Image.asset("assets/images/1.jpg", fit: BoxFit.cover),
+            child: Image.asset(
+              "assets/images/1.jpg",
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                // Fallback si la imagen no existe en iOS
+                return Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFF1a1a1a),
+                        Color(0xFF2d2d2d),
+                        Colors.black,
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
+          
+          // LOGO CON FALLBACK
           Positioned(
             top: 40,
             left: 20,
@@ -192,9 +205,33 @@ class _WelcomePageState extends State<WelcomePage>
                 width: 160,
                 height: 70,
                 fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  // Fallback si el logo no existe
+                  return Container(
+                    width: 160,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'CLUB FRANCE',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          fontFamily: 'Montserrat',
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
+
+          // BOTONES
           Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -220,9 +257,7 @@ class _WelcomePageState extends State<WelcomePage>
                             colors: [Color(0xFFFFD700), Color(0xFFFFC107)],
                           ),
                           textColor: Colors.black,
-                          onPressed: () {
-                            // Registro
-                          },
+                          onPressed: _navigateToRegistration,
                         ),
                         _shineButton(
                           text: "Soy usuario(a)",
