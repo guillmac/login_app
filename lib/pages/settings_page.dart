@@ -16,7 +16,6 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool _biometricEnabled = false;
   bool _notificationsEnabled = true;
-  bool _darkModeEnabled = false;
   bool _loading = false;
   final LocalAuthentication _auth = LocalAuthentication();
   bool _biometricSupported = false;
@@ -37,7 +36,6 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       _biometricEnabled = settings['biometricEnabled'] ?? false;
       _notificationsEnabled = settings['notificationsEnabled'] ?? true;
-      _darkModeEnabled = settings['darkModeEnabled'] ?? false;
       _loading = false;
     });
   }
@@ -64,7 +62,6 @@ class _SettingsPageState extends State<SettingsPage> {
     final settings = {
       'biometricEnabled': _biometricEnabled,
       'notificationsEnabled': _notificationsEnabled,
-      'darkModeEnabled': _darkModeEnabled,
     };
     await SessionManager.saveSettings(settings);
 
@@ -85,7 +82,7 @@ class _SettingsPageState extends State<SettingsPage> {
         localizedReason: 'Autentícate para probar el login biométrico',
         options: const AuthenticationOptions(
           stickyAuth: true,
-          biometricOnly: false, // ⬅️ CAMBIO: false para Android
+          biometricOnly: false,
         ),
       );
 
@@ -120,68 +117,15 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  void _showClearDataDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            "Limpiar Datos",
-            style: TextStyle(
-              fontFamily: 'Montserrat',
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: const Text(
-            "¿Estás seguro de que quieres eliminar todos los datos locales de la app? Esta acción no se puede deshacer.",
-            style: TextStyle(fontFamily: 'Montserrat'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                "Cancelar",
-                style: TextStyle(fontFamily: 'Montserrat'),
-              ),
-            ),
-            TextButton(
-              onPressed: () async {
-                final navigator = Navigator.of(context);
-                final messenger = ScaffoldMessenger.of(context);
-
-                navigator.pop();
-                await SessionManager.clearAllData();
-
-                if (!mounted) return;
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text("Datos limpiados correctamente"),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              },
-              child: const Text(
-                "Limpiar",
-                style: TextStyle(fontFamily: 'Montserrat', color: Colors.red),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   void _navigateToPage(int index) {
-    if (index == _selectedIndex) return; // Ya está en la página actual
+    if (index == _selectedIndex) return;
 
     if (index == 0) {
-      // Navegar a HomePage - reemplazando toda la pila
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => HomePage(user: widget.user)),
         (route) => false,
       );
     } else if (index == 1) {
-      // Navegar a ProfilePage - reemplazando toda la pila
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (_) => ProfilePage(email: widget.user['email'] ?? ''),
@@ -261,37 +205,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
 
                 const SizedBox(height: 24),
-                _buildSectionHeader("Apariencia"),
-                _buildSettingSwitch(
-                  "Modo Oscuro",
-                  "Activar el tema oscuro en la aplicación",
-                  Icons.dark_mode,
-                  _darkModeEnabled,
-                  (value) => setState(() => _darkModeEnabled = value),
-                ),
-
-                const SizedBox(height: 24),
-                _buildSectionHeader("Datos y Almacenamiento"),
-                _buildActionButton(
-                  "Limpiar Datos Locales",
-                  Icons.cleaning_services,
-                  _showClearDataDialog,
-                  color: Colors.orange,
-                ),
-
-                const SizedBox(height: 24),
                 _buildSectionHeader("Información"),
                 _buildInfoCard("Versión de la App", "1.0.0", Icons.info),
-                _buildInfoCard(
-                  "Usuario",
-                  widget.user['email'] ?? '',
-                  Icons.person,
-                ),
-                _buildInfoCard(
-                  "Número de Usuario",
-                  widget.user['numero_usuario']?.toString() ?? 'No disponible',
-                  Icons.badge,
-                ),
 
                 const SizedBox(height: 32),
                 Padding(
@@ -319,7 +234,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ],
             ),
-      // BottomNavigationBar agregado
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
@@ -334,7 +248,6 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         boxShadow: [
           BoxShadow(
-            // ignore: deprecated_member_use
             color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),

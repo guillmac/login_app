@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
 import '../utils/session_manager.dart';
 import 'home_page.dart';
-import 'verification_code_page.dart'; // Añade esta importación
+import 'verification_code_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,6 +20,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   bool _loading = false;
   bool _canUseBiometric = false;
   bool _isRecoveringPassword = false;
+  bool _obscurePassword = true; // Nueva variable para controlar la visibilidad de la contraseña
 
   final LocalAuthentication auth = LocalAuthentication();
 
@@ -71,6 +72,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     _passwordController.dispose();
     _shineController.dispose();
     super.dispose();
+  }
+
+  // Función para alternar la visibilidad de la contraseña
+  void _togglePasswordVisibility() {
+    setState(() {
+      _obscurePassword = !_obscurePassword;
+    });
   }
 
   Future<void> _checkBiometricAvailability() async {
@@ -683,7 +691,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         const SizedBox(height: 16),
                         TextField(
                           controller: _passwordController,
-                          obscureText: true,
+                          obscureText: _obscurePassword, // Usar la variable de estado
                           style: const TextStyle(
                             color: Colors.white,
                             fontFamily: 'Montserrat',
@@ -692,6 +700,15 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             prefixIcon: const Icon(
                               Icons.lock,
                               color: Colors.white70,
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.white70,
+                              ),
+                              onPressed: _togglePasswordVisibility,
                             ),
                             labelText: "Contraseña",
                             labelStyle: const TextStyle(color: Colors.white70),
