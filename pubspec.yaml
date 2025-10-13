@@ -65,6 +65,7 @@ flutter:
     - assets/images/
     - assets/images/android-chrome-512x512.png
     - assets/images/logo.png
+    - assets/images/logo_app.png
 
   # 🔤 Fonts
   fonts:
@@ -78,9 +79,9 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/android-chrome-512x512.png"
+  image_path: "assets/images/logo_app.png"
   min_sdk_android: 21
-  adaptive_icon_foreground: "assets/images/android-chrome-512x512.png"
+  adaptive_icon_foreground: "assets/images/logo_app.png"
   adaptive_icon_background: "#FFFFFF"
   ios_precomposed: true
   image_size_android: 80%    # ⬅️ Reduce tamaño en Android
