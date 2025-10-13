@@ -453,6 +453,12 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+             _buildSectionButton(
+              context,
+              "Mi membresía",
+              Icons.verified_user,
+              () => _navigateToPage(context, const PaymentsPage()),
+            ),
             _buildSectionButton(
               context,
               "Actividades Deportivas",
@@ -507,12 +513,7 @@ class _HomePageState extends State<HomePage> {
                 _PlaceholderPage(title: "Entrenadores"),
               ),
             ),
-            _buildSectionButton(
-              context,
-              "Mi membresía",
-              Icons.verified_user,
-              () => _navigateToPage(context, const PaymentsPage()),
-            ),
+
             _buildSectionButton(
               context,
               "Beneficios",

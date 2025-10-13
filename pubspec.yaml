@@ -10,8 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  intl: ^0.19.0
-  logger: ^1.4.0
+  intl: ^0.20.2
+  logger: ^2.6.2
   url_launcher: ^6.1.11
   google_maps_flutter: ^2.3.1
 
@@ -44,16 +44,18 @@ dependencies:
 
   # NUEVAS DEPENDENCIAS: Ubicación en background
   android_alarm_manager_plus: ^5.0.0
-  workmanager: ^0.5.1
-  background_fetch: 1.4.0
+  workmanager: ^0.9.0+3
+
+  # Manejo de permisos (IMPORTANTE para geolocalización)
+  permission_handler: ^11.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
   # Para generar íconos de la app
-  flutter_launcher_icons: ^0.13.1
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
@@ -62,6 +64,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/android-chrome-512x512.png
+    - assets/images/logo.png
 
   # 🔤 Fonts
   fonts:
@@ -71,8 +74,14 @@ flutter:
         - asset: assets/fonts/Montserrat-Bold.ttf
           weight: 700
 
-# 🔹 Configuración del ícono de la app
+# 🔹 Configuración con tamaño reducido al 80%
 flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/images/android-chrome-512x512.png"
+  min_sdk_android: 21
+  adaptive_icon_foreground: "assets/images/android-chrome-512x512.png"
+  adaptive_icon_background: "#FFFFFF"
+  ios_precomposed: true
+  image_size_android: 80%    # ⬅️ Reduce tamaño en Android
+  image_size_ios: 80%        # ⬅️ Reduce tamaño en iOS

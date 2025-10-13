@@ -85,7 +85,7 @@ class _SettingsPageState extends State<SettingsPage> {
         localizedReason: 'Autentícate para probar el login biométrico',
         options: const AuthenticationOptions(
           stickyAuth: true,
-          biometricOnly: true,
+          biometricOnly: false, // ⬅️ CAMBIO: false para Android
         ),
       );
 
