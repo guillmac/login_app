@@ -248,7 +248,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05), // Fixed line
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),

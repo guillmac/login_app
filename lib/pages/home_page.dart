@@ -546,7 +546,7 @@ class _HomePageState extends State<HomePage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: const Color(0xFF000000).withValues(alpha: 0.1), // Fixed
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -617,7 +617,7 @@ class _HomePageState extends State<HomePage> {
           ),
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
           elevation: 1,
-          shadowColor: Colors.black.withOpacity(0.1),
+          shadowColor: const Color(0xFF000000).withValues(alpha: 0.1), // Fixed
         ),
         onPressed: onTap,
         child: Row(
@@ -689,7 +689,7 @@ class _PlaceholderPage extends StatelessWidget {
               Icon(
                 Icons.construction,
                 size: 80,
-                color: Colors.amber.withOpacity(0.7),
+                color: const Color(0xFFFFFF00).withValues(alpha: 0.7), // Fixed
               ),
               const SizedBox(height: 20),
               Text(
