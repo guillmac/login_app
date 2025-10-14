@@ -488,9 +488,9 @@ class _HomePageState extends State<HomePage> {
             ),
             _buildSectionButton(
               context,
-              "Noticias",
-              Icons.article,
-              () => _navigateToPage(context, _PlaceholderPage(title: "Noticias")),
+              "Notificaciones", // CAMBIADO: "Noticias" por "Notificaciones"
+              Icons.notifications, // CAMBIADO: Icono de article por notifications
+              () => _navigateToPage(context, _PlaceholderPage(title: "Notificaciones")), // CAMBIADO: Título actualizado
             ),
             _buildSectionButton(
               context,
@@ -641,7 +641,7 @@ class _HomePageState extends State<HomePage> {
             const Icon(
               Icons.arrow_forward_ios,
               size: 16,
-              color: Color(0xFF0D47A1), // Fixed: removed unnecessary 'const'
+              color: Color(0xFF0D47A1),
             ),
           ],
         ),

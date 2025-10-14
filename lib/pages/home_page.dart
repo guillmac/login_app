@@ -453,12 +453,6 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-             _buildSectionButton(
-              context,
-              "Mi membresía",
-              Icons.verified_user,
-              () => _navigateToPage(context, const PaymentsPage()),
-            ),
             _buildSectionButton(
               context,
               "Actividades Deportivas",
@@ -494,9 +488,9 @@ class _HomePageState extends State<HomePage> {
             ),
             _buildSectionButton(
               context,
-              "Noticias",
-              Icons.article,
-              () => _navigateToPage(context, _PlaceholderPage(title: "Noticias")),
+              "Notificaciones", // CAMBIADO: "Noticias" por "Notificaciones"
+              Icons.notifications, // CAMBIADO: Icono de article por notifications
+              () => _navigateToPage(context, _PlaceholderPage(title: "Notificaciones")), // CAMBIADO: Título actualizado
             ),
             _buildSectionButton(
               context,
@@ -513,7 +507,12 @@ class _HomePageState extends State<HomePage> {
                 _PlaceholderPage(title: "Entrenadores"),
               ),
             ),
-
+            _buildSectionButton(
+              context,
+              "Mi membresía",
+              Icons.verified_user,
+              () => _navigateToPage(context, const PaymentsPage()),
+            ),
             _buildSectionButton(
               context,
               "Beneficios",
@@ -546,7 +545,7 @@ class _HomePageState extends State<HomePage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF000000).withValues(alpha: 0.1), // Fixed
+            color: const Color(0xFF000000).withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -617,7 +616,7 @@ class _HomePageState extends State<HomePage> {
           ),
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
           elevation: 1,
-          shadowColor: const Color(0xFF000000).withValues(alpha: 0.1), // Fixed
+          shadowColor: const Color(0xFF000000).withValues(alpha: 0.1),
         ),
         onPressed: onTap,
         child: Row(
@@ -689,7 +688,7 @@ class _PlaceholderPage extends StatelessWidget {
               Icon(
                 Icons.construction,
                 size: 80,
-                color: const Color(0xFFFFFF00).withValues(alpha: 0.7), // Fixed
+                color: const Color(0xFFFFFF00).withValues(alpha: 0.7),
               ),
               const SizedBox(height: 20),
               Text(
@@ -733,6 +732,7 @@ class _PlaceholderPage extends StatelessWidget {
               ),
             ],
           ),
+          
         ),
       ),
     );
