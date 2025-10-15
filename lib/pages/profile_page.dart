@@ -1633,7 +1633,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: DropdownButtonFormField<String>(
         isExpanded: true,
-        value: _selectedAlcaldia,
+        initialValue: _selectedAlcaldia,
         decoration: InputDecoration(
           labelText: "Alcaldía/Municipio",
           prefixIcon: const Icon(Icons.account_balance),
@@ -1659,7 +1659,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         items: _alcaldiasOpciones.map((String value) {
           return DropdownMenuItem<String>(
             value: value,
-            child: Container(
+            child: SizedBox(
               width: double.infinity,
               child: Text(
                 value,
@@ -1679,7 +1679,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: DropdownButtonFormField<Map<String, dynamic>>(
         isExpanded: true,
-        value: _selectedColonia,
+        initialValue: _selectedColonia,
         decoration: InputDecoration(
           labelText: "Colonia",
           prefixIcon: const Icon(Icons.home),
@@ -1705,7 +1705,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         items: _coloniasOpciones.map((Map<String, dynamic> colonia) {
           return DropdownMenuItem<Map<String, dynamic>>(
             value: colonia,
-            child: Container(
+            child: SizedBox(
               width: double.infinity,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1741,7 +1741,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: DropdownButtonFormField<String>(
         isExpanded: true,
-        value: selectedValue,
+        initialValue: selectedValue,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon),
@@ -1757,7 +1757,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         items: options.map((String value) {
           return DropdownMenuItem<String>(
             value: value,
-            child: Container(
+            child: SizedBox(
               width: double.infinity,
               child: Text(
                 value,
@@ -1783,7 +1783,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: DropdownButtonFormField<String>(
         isExpanded: true,
-        value: selectedValue?.isEmpty ?? true ? null : selectedValue,
+        initialValue: selectedValue?.isEmpty ?? true ? null : selectedValue,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon),
@@ -1809,7 +1809,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           ...options.map((String value) {
             return DropdownMenuItem<String>(
               value: value,
-              child: Container(
+              child: SizedBox(
                 width: double.infinity,
                 child: Text(
                   value,
