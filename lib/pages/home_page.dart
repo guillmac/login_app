@@ -26,17 +26,36 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   bool _locationServicesInitialized = false;
   StreamSubscription<Position>? _locationSubscription;
   DateTime? _lastLocationTime;
   Position? _lastLocation;
   bool _serverErrorDetected = false;
+  
+  // Animación
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
+    _initializeAnimations();
     _initializeLocationServices();
+  }
+
+  void _initializeAnimations() {
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOutBack,
+    ));
   }
 
   Future<void> _initializeLocationServices() async {
@@ -333,73 +352,181 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    _animationController.dispose();
     _locationSubscription?.cancel();
     debugPrint('📍 Monitoreo de ubicación detenido');
     super.dispose();
   }
 
   Future<void> _logout(BuildContext context) async {
-    await BackgroundLocationService.stopBackgroundLocationService();
-    await SessionManager.logout();
+    try {
+      // Mostrar indicador de carga
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+            ),
+          );
+        },
+      );
 
-    if (!context.mounted) return;
+      await BackgroundLocationService.stopBackgroundLocationService();
+      await SessionManager.logout();
 
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const WelcomePage()),
-      (Route<dynamic> route) => false,
-    );
+      if (!context.mounted) return;
+      
+      // Cerrar el diálogo de carga
+      Navigator.of(context).pop();
+      
+      // Navegar a la página de bienvenida con animación
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => const WelcomePage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(1.0, 0.0);
+            const end = Offset.zero;
+            const curve = Curves.easeInOut;
+            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            var offsetAnimation = animation.drive(tween);
+            
+            return SlideTransition(
+              position: offsetAnimation,
+              child: FadeTransition(
+                opacity: animation,
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+        (Route<dynamic> route) => false,
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      
+      // Cerrar el diálogo de carga en caso de error
+      Navigator.of(context).pop();
+      
+      // Mostrar mensaje de error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            "Error al cerrar sesión",
+            style: TextStyle(fontFamily: 'Montserrat'),
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
   }
 
   void _showLogoutConfirmation(BuildContext context) {
+    _animationController.forward();
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF1a1a1a),
-          title: const Text(
-            "Cerrar Sesión",
-            style: TextStyle(
-              fontFamily: 'Montserrat',
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+        return ScaleTransition(
+          scale: _scaleAnimation,
+          child: AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-          ),
-          content: const Text(
-            "¿Estás seguro de que quieres cerrar sesión?",
-            style: TextStyle(
-              fontFamily: 'Montserrat',
-              color: Colors.white70,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                "Cancelar",
-                style: TextStyle(
-                  fontFamily: 'Montserrat',
-                  color: Colors.white70,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                await _logout(context);
-              },
-              child: const Text(
-                "Cerrar Sesión",
-                style: TextStyle(
-                  fontFamily: 'Montserrat', 
+            title: const Column(
+              children: [
+                Icon(
+                  Icons.logout,
+                  size: 48,
                   color: Colors.red,
-                  fontWeight: FontWeight.bold,
                 ),
-              ),
+                SizedBox(height: 8),
+                Text(
+                  "Cerrar Sesión",
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                    fontSize: 20,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-          ],
+            content: const Text(
+              "¿Estás seguro de que quieres cerrar sesión?",
+              style: TextStyle(
+                fontFamily: 'Montserrat',
+                color: Colors.black54,
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            actions: [
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _animationController.reverse();
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.grey.shade200,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        "Cancelar",
+                        style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await _logout(context);
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        "Cerrar Sesión",
+                        style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         );
       },
-    );
+    ).then((_) {
+      _animationController.reverse();
+    });
   }
 
   void _navigateToPage(BuildContext context, Widget page) {
@@ -453,6 +580,12 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+             _buildSectionButton(
+              context,
+              "Mi membresía",
+              Icons.verified_user,
+              () => _navigateToPage(context, const PaymentsPage()),
+            ),
             _buildSectionButton(
               context,
               "Actividades Deportivas",
@@ -507,12 +640,7 @@ class _HomePageState extends State<HomePage> {
                 _PlaceholderPage(title: "Entrenadores"),
               ),
             ),
-            _buildSectionButton(
-              context,
-              "Mi membresía",
-              Icons.verified_user,
-              () => _navigateToPage(context, const PaymentsPage()),
-            ),
+
             _buildSectionButton(
               context,
               "Beneficios",

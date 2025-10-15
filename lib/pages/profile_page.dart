@@ -4,10 +4,25 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:logger/logger.dart';
+import 'package:flutter/services.dart';
 import '../utils/session_manager.dart';
 import 'welcome_page.dart';
 import 'home_page.dart';
 import 'settings_page.dart';
+
+// Formateador para convertir texto a mayúsculas
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
+    );
+  }
+}
 
 class ProfilePage extends StatefulWidget {
   final String email;
@@ -17,17 +32,21 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
   Map<String, dynamic>? user;
   bool loading = true;
   bool editing = false;
   File? _newImage;
   final int _selectedIndex = 1;
 
+  // Animación
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
   // Instancia de Logger
   final Logger _logger = Logger();
 
-  // Listas de opciones para los dropdowns
+  // Listas de opciones para los dropdowns existentes
   final List<String> _generoOpciones = ['Masculino', 'Femenino', 'Otro'];
   final List<String> _tipoSangreOpciones = [
     'O+',
@@ -131,16 +150,63 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _loadingAlcaldias = false;
   bool _loadingColonias = false;
 
-  // Controladores de texto
+  // NUEVAS PROPIEDADES PARA LAS TABLAS RELACIONADAS
+  List<String> _nacionalidadesUsuario = [];
+  List<String> _actividadesDeportivasUsuario = [];
+  List<String> _actividadesOcioUsuario = [];
+  List<String> _actividadesCulturalesUsuario = [];
+
+  // Controladores para los nuevos campos directos
+  final TextEditingController _profesionController = TextEditingController();
+  final TextEditingController _empresaTrabajoController = TextEditingController();
+  final TextEditingController _puestoTrabajoController = TextEditingController();
+  final TextEditingController _rfcController = TextEditingController();
+  final TextEditingController _curpController = TextEditingController();
+  final TextEditingController _institucionEmergenciaController = TextEditingController();
+  final TextEditingController _ocupacionController = TextEditingController();
+
+  // Variables para checkboxes
+  bool _avisoPrivacidad = false;
+  bool _reglamentoAceptado = false;
+  bool _terminosEmergencia = false;
+  bool _vendeProductosServicios = false;
+
+  // Listas de opciones para los nuevos dropdowns
+  final List<String> _nacionalidadesOpciones = [
+    'Mexicana', 'Española', 'Estadounidense', 'Francesa', 'Argentina', 
+    'Colombiana', 'Peruana', 'Chilena', 'Brasileña', 'Italiana', 'Alemana',
+    'Británica', 'Canadiense', 'Otra'
+  ];
+
+  final List<String> _actividadesDeportivasOpciones = [
+    'Tenis', 'Natación', 'Golf', 'Fútbol', 'Básquetbol', 'Voleibol',
+    'Pádel', 'Squash', 'Gimnasio', 'Yoga', 'Pilates', 'Spinning',
+    'Artes Marciales', 'Box', 'CrossFit', 'Atletismo', 'Ciclismo', 'Otro'
+  ];
+
+  final List<String> _actividadesOcioOpciones = [
+    'Billar', 'Bar', 'Restaurante', 'Terraza', 'Salón de Eventos',
+    'Cine', 'Biblioteca', 'Jardines', 'Alberca', 'Área de Juegos',
+    'Salón de Juegos', 'Sala de TV', 'Otro'
+  ];
+
+  final List<String> _actividadesCulturalesOpciones = [
+    'Pintura', 'Música', 'Teatro', 'Danza', 'Escultura', 'Fotografía',
+    'Literatura', 'Cine Club', 'Conferencias', 'Talleres', 'Exposiciones',
+    'Conciertos', 'Presentaciones', 'Otro'
+  ];
+
+  final List<String> _ocupacionOpciones = [
+    'Estudiante', 'Empleado', 'Empresario', 'Profesionista', 'Comerciante',
+    'Servicios', 'Artesano', 'Jubilado', 'Ama de casa', 'Desempleado', 'Otro'
+  ];
+
+  // Controladores de texto existentes
   final TextEditingController _primerNombreController = TextEditingController();
-  final TextEditingController _segundoNombreController =
-      TextEditingController();
-  final TextEditingController _primerApellidoController =
-      TextEditingController();
-  final TextEditingController _segundoApellidoController =
-      TextEditingController();
-  final TextEditingController _fechaNacimientoController =
-      TextEditingController();
+  final TextEditingController _segundoNombreController = TextEditingController();
+  final TextEditingController _primerApellidoController = TextEditingController();
+  final TextEditingController _segundoApellidoController = TextEditingController();
+  final TextEditingController _fechaNacimientoController = TextEditingController();
   final TextEditingController _generoController = TextEditingController();
   final TextEditingController _telefonoController = TextEditingController();
   final TextEditingController _calleController = TextEditingController();
@@ -149,18 +215,14 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController _alcaldiaController = TextEditingController();
   final TextEditingController _cpController = TextEditingController();
   final TextEditingController _ciudadController = TextEditingController();
-  final TextEditingController _emergenciaNombreController =
-      TextEditingController();
-  final TextEditingController _emergenciaTelefonoController =
-      TextEditingController();
-  final TextEditingController _emergenciaParentescoController =
-      TextEditingController();
+  final TextEditingController _emergenciaNombreController = TextEditingController();
+  final TextEditingController _emergenciaTelefonoController = TextEditingController();
+  final TextEditingController _emergenciaParentescoController = TextEditingController();
   final TextEditingController _tipoSangreController = TextEditingController();
   final TextEditingController _alergiasController = TextEditingController();
-  final TextEditingController _enfermedadesCronicasController =
-      TextEditingController();
+  final TextEditingController _enfermedadesCronicasController = TextEditingController();
 
-  // Variables para manejar los valores seleccionados en dropdowns
+  // Variables para manejar los valores seleccionados en dropdowns existentes
   String? _selectedGenero;
   String? _selectedTipoSangre;
   String? _selectedParentesco;
@@ -169,15 +231,52 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _selectedAlcaldia;
   Map<String, dynamic>? _selectedColonia;
 
+  // Variables para nuevos dropdowns
+  String? _selectedOcupacion;
+  String? _selectedNacionalidadPrimera;
+  String? _selectedNacionalidadSegunda;
+  String? _selectedNacionalidadTercera;
+  String? _selectedDeportivaPrincipal;
+  String? _selectedDeportivaSecundaria;
+  String? _selectedDeportivaTerciaria;
+  String? _selectedOcioPrincipal;
+  String? _selectedOcioSecundaria;
+  String? _selectedOcioTerciaria;
+  String? _selectedCulturalPrincipal;
+  String? _selectedCulturalSecundaria;
+  String? _selectedCulturalTerciaria;
+
   @override
   void initState() {
     super.initState();
+    _initializeAnimations();
     _fetchUser();
     _cargarAlcaldias();
+    // Inicializar listas
+    _nacionalidadesUsuario = [];
+    _actividadesDeportivasUsuario = [];
+    _actividadesOcioUsuario = [];
+    _actividadesCulturalesUsuario = [];
+  }
+
+  void _initializeAnimations() {
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOutBack,
+    ));
+    _animationController.forward();
   }
 
   @override
   void dispose() {
+    _animationController.dispose();
     // Liberar todos los controladores para prevenir fugas de memoria
     _primerNombreController.dispose();
     _segundoNombreController.dispose();
@@ -198,6 +297,16 @@ class _ProfilePageState extends State<ProfilePage> {
     _tipoSangreController.dispose();
     _alergiasController.dispose();
     _enfermedadesCronicasController.dispose();
+    
+    // Nuevos disposers
+    _profesionController.dispose();
+    _empresaTrabajoController.dispose();
+    _puestoTrabajoController.dispose();
+    _rfcController.dispose();
+    _curpController.dispose();
+    _institucionEmergenciaController.dispose();
+    _ocupacionController.dispose();
+    
     super.dispose();
   }
 
@@ -388,6 +497,22 @@ class _ProfilePageState extends State<ProfilePage> {
               ? null
               : enfermedadesValue;
 
+          // NUEVOS CONTROLADORES
+          _profesionController.text = _getValorLimpio(user!['profesion']);
+          _empresaTrabajoController.text = _getValorLimpio(user!['empresa_trabajo']);
+          _puestoTrabajoController.text = _getValorLimpio(user!['puesto_trabajo']);
+          _rfcController.text = _getValorLimpio(user!['rfc']);
+          _curpController.text = _getValorLimpio(user!['curp']);
+          _institucionEmergenciaController.text = _getValorLimpio(user!['institucion_emergencia']);
+          _ocupacionController.text = _getValorLimpio(user!['ocupacion']);
+          _selectedOcupacion = _ocupacionController.text.isEmpty ? null : _ocupacionController.text;
+
+          // CHECKBOXES
+          _avisoPrivacidad = user!['aviso_privacidad'] == 1 || user!['aviso_privacidad'] == true;
+          _reglamentoAceptado = user!['reglamento_aceptado'] == 1 || user!['reglamento_aceptado'] == true;
+          _terminosEmergencia = user!['terminos_emergencia'] == 1 || user!['terminos_emergencia'] == true;
+          _vendeProductosServicios = user!['vende_productos_servicios'] == 1 || user!['vende_productos_servicios'] == true;
+
           // Cargar colonias si ya hay una alcaldía seleccionada
           if (_alcaldiaController.text.isNotEmpty) {
             _cargarColonias(_alcaldiaController.text);
@@ -454,6 +579,45 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  // Métodos para manejar selecciones múltiples
+  void _agregarNacionalidad(String nacionalidad, String tipo) {
+    setState(() {
+      // Limpiar nacionalidad existente del mismo tipo
+      _nacionalidadesUsuario.removeWhere((n) => n.startsWith('$tipo:'));
+      // Agregar nueva nacionalidad
+      if (nacionalidad.isNotEmpty) {
+        _nacionalidadesUsuario.add('$tipo:$nacionalidad');
+      }
+    });
+  }
+
+  void _agregarActividadDeportiva(String actividad, String tipo) {
+    setState(() {
+      _actividadesDeportivasUsuario.removeWhere((a) => a.startsWith('$tipo:'));
+      if (actividad.isNotEmpty) {
+        _actividadesDeportivasUsuario.add('$tipo:$actividad');
+      }
+    });
+  }
+
+  void _agregarActividadOcio(String actividad, String tipo) {
+    setState(() {
+      _actividadesOcioUsuario.removeWhere((a) => a.startsWith('$tipo:'));
+      if (actividad.isNotEmpty) {
+        _actividadesOcioUsuario.add('$tipo:$actividad');
+      }
+    });
+  }
+
+  void _agregarActividadCultural(String actividad, String tipo) {
+    setState(() {
+      _actividadesCulturalesUsuario.removeWhere((a) => a.startsWith('$tipo:'));
+      if (actividad.isNotEmpty) {
+        _actividadesCulturalesUsuario.add('$tipo:$actividad');
+      }
+    });
+  }
+
   Future<void> _guardarCambios() async {
     try {
       _logger.i('Iniciando guardado de cambios para usuario: ${widget.email}');
@@ -513,6 +677,25 @@ class _ProfilePageState extends State<ProfilePage> {
         "alergias": _alergiasController.text.trim(),
         "enfermedades_cronicas": _enfermedadesCronicasController.text.trim(),
         "foto": fotoUrl,
+
+        // NUEVOS CAMPOS DIRECTOS
+        "profesion": _profesionController.text.trim(),
+        "empresa_trabajo": _empresaTrabajoController.text.trim(),
+        "puesto_trabajo": _puestoTrabajoController.text.trim(),
+        "rfc": _rfcController.text.trim(),
+        "curp": _curpController.text.trim(),
+        "institucion_emergencia": _institucionEmergenciaController.text.trim(),
+        "ocupacion": _ocupacionController.text.trim(),
+        "aviso_privacidad": _avisoPrivacidad,
+        "reglamento_aceptado": _reglamentoAceptado,
+        "terminos_emergencia": _terminosEmergencia,
+        "vende_productos_servicios": _vendeProductosServicios,
+
+        // DATOS RELACIONADOS
+        "nacionalidades": _nacionalidadesUsuario,
+        "actividades_deportivas": _actividadesDeportivasUsuario,
+        "actividades_ocio": _actividadesOcioUsuario,
+        "actividades_culturales": _actividadesCulturalesUsuario,
       };
 
       _logger.d('Enviando datos actualizados al servidor');
@@ -551,15 +734,199 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  void _showLogoutConfirmation() {
+    _animationController.forward();
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return ScaleTransition(
+          scale: _scaleAnimation,
+          child: AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Column(
+              children: [
+                Icon(
+                  Icons.logout,
+                  size: 48,
+                  color: Colors.red,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  "Cerrar Sesión",
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                    fontSize: 20,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+            content: const Text(
+              "¿Estás seguro de que quieres cerrar sesión?",
+              style: TextStyle(
+                fontFamily: 'Montserrat',
+                color: Colors.black54,
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            actions: [
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _animationController.reverse();
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.grey.shade200,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        "Cancelar",
+                        style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await _logout();
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        "Cerrar Sesión",
+                        style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    ).then((_) {
+      _animationController.reverse();
+    });
+  }
+
+  Future<void> _logout() async {
+    try {
+      _logger.i('Usuario cerrando sesión: ${widget.email}');
+      
+      // Mostrar indicador de carga
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+            ),
+          );
+        },
+      );
+
+      await SessionManager.logout();
+      
+      if (!mounted) return;
+      
+      // Cerrar el diálogo de carga
+      Navigator.of(context).pop();
+      
+      // Navegar a la página de bienvenida con animación
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => const WelcomePage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(1.0, 0.0);
+            const end = Offset.zero;
+            const curve = Curves.easeInOut;
+            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            var offsetAnimation = animation.drive(tween);
+            
+            return SlideTransition(
+              position: offsetAnimation,
+              child: FadeTransition(
+                opacity: animation,
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+        (route) => false,
+      );
+    } catch (e) {
+      _logger.e('Error durante el cierre de sesión: $e');
+      if (!mounted) return;
+      
+      // Cerrar el diálogo de carga en caso de error
+      Navigator.of(context).pop();
+      
+      // Mostrar mensaje de error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            "Error al cerrar sesión",
+            style: TextStyle(fontFamily: 'Montserrat'),
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1976D2)),
+          ),
+        ),
+      );
     }
 
     if (user == null) {
       return const Scaffold(
-        body: Center(child: Text("No se pudo cargar el usuario")),
+        body: Center(
+          child: Text(
+            "No se pudo cargar el usuario",
+            style: TextStyle(fontFamily: 'Montserrat'),
+          ),
+        ),
       );
     }
 
@@ -605,7 +972,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.black87),
-            onPressed: _logout,
+            onPressed: _showLogoutConfirmation,
+            tooltip: 'Cerrar sesión',
           ),
         ],
       ),
@@ -918,6 +1286,307 @@ class _ProfilePageState extends State<ProfilePage> {
                 Icons.medical_services,
               ),
 
+            const SizedBox(height: 24),
+
+            // NUEVA SECCIÓN: INFORMACIÓN LABORAL Y PROFESIONAL
+            _buildSectionHeader("Información Laboral y Profesional"),
+            _buildField(
+              "Profesión",
+              _profesionController,
+              editing,
+              Icons.work,
+            ),
+            _buildField(
+              "Empresa donde trabaja",
+              _empresaTrabajoController,
+              editing,
+              Icons.business,
+            ),
+            _buildField(
+              "Puesto que desempeña",
+              _puestoTrabajoController,
+              editing,
+              Icons.badge,
+            ),
+
+            // DROPDOWN PARA OCUPACIÓN
+            if (editing)
+              _buildDropdownField(
+                "Ocupación",
+                _selectedOcupacion,
+                _ocupacionOpciones,
+                Icons.work_outline,
+                (newValue) {
+                  setState(() {
+                    _selectedOcupacion = newValue;
+                    _ocupacionController.text = newValue ?? '';
+                  });
+                },
+              ),
+            if (!editing && _ocupacionController.text.isNotEmpty)
+              _buildStaticInfo(
+                "Ocupación",
+                _ocupacionController.text,
+                Icons.work_outline,
+              ),
+
+            // CAMPO RFC EN MAYÚSCULAS
+            _buildUppercaseField(
+              "RFC",
+              _rfcController,
+              editing,
+              Icons.assignment,
+            ),
+
+            // CAMPO CURP EN MAYÚSCULAS
+            _buildUppercaseField(
+              "CURP",
+              _curpController,
+              editing,
+              Icons.assignment_ind,
+            ),
+
+            // CHECKBOX PARA VENTA DE PRODUCTOS/SERVICIOS
+            if (editing)
+              _buildCheckboxField(
+                "¿Vendes algún producto o servicio?",
+                _vendeProductosServicios,
+                Icons.shopping_cart,
+                (newValue) {
+                  setState(() {
+                    _vendeProductosServicios = newValue ?? false;
+                  });
+                },
+              ),
+
+            const SizedBox(height: 24),
+
+            // NUEVA SECCIÓN: NACIONALIDADES
+            _buildSectionHeader("Nacionalidades"),
+            if (editing) ...[
+              _buildMultiSelectDropdown(
+                "1ra Nacionalidad",
+                _selectedNacionalidadPrimera,
+                _nacionalidadesOpciones,
+                Icons.flag,
+                (newValue) {
+                  setState(() {
+                    _selectedNacionalidadPrimera = newValue;
+                    _agregarNacionalidad(newValue ?? '', 'Primera');
+                  });
+                },
+              ),
+              _buildMultiSelectDropdown(
+                "2da Nacionalidad", 
+                _selectedNacionalidadSegunda,
+                _nacionalidadesOpciones,
+                Icons.flag_outlined,
+                (newValue) {
+                  setState(() {
+                    _selectedNacionalidadSegunda = newValue;
+                    _agregarNacionalidad(newValue ?? '', 'Segunda');
+                  });
+                },
+              ),
+              _buildMultiSelectDropdown(
+                "3ra Nacionalidad",
+                _selectedNacionalidadTercera,
+                _nacionalidadesOpciones,
+                Icons.flag_outlined,
+                (newValue) {
+                  setState(() {
+                    _selectedNacionalidadTercera = newValue;
+                    _agregarNacionalidad(newValue ?? '', 'Tercera');
+                  });
+                },
+              ),
+            ] else
+              _buildStaticListInfo("Nacionalidades", _nacionalidadesUsuario, Icons.flag),
+
+            const SizedBox(height: 24),
+
+            // NUEVA SECCIÓN: ACTIVIDADES DEPORTIVAS
+            _buildSectionHeader("Actividades Deportivas"),
+            if (editing) ...[
+              _buildMultiSelectDropdown(
+                "Deportiva Principal",
+                _selectedDeportivaPrincipal,
+                _actividadesDeportivasOpciones,
+                Icons.sports_soccer,
+                (newValue) {
+                  setState(() {
+                    _selectedDeportivaPrincipal = newValue;
+                    _agregarActividadDeportiva(newValue ?? '', 'Principal');
+                  });
+                },
+              ),
+              _buildMultiSelectDropdown(
+                "Deportiva Secundaria",
+                _selectedDeportivaSecundaria,
+                _actividadesDeportivasOpciones,
+                Icons.sports_baseball,
+                (newValue) {
+                  setState(() {
+                    _selectedDeportivaSecundaria = newValue;
+                    _agregarActividadDeportiva(newValue ?? '', 'Secundaria');
+                  });
+                },
+              ),
+              _buildMultiSelectDropdown(
+                "Deportiva Terciaria",
+                _selectedDeportivaTerciaria,
+                _actividadesDeportivasOpciones,
+                Icons.sports_tennis,
+                (newValue) {
+                  setState(() {
+                    _selectedDeportivaTerciaria = newValue;
+                    _agregarActividadDeportiva(newValue ?? '', 'Terciaria');
+                  });
+                },
+              ),
+            ] else
+              _buildStaticListInfo("Actividades Deportivas", _actividadesDeportivasUsuario, Icons.sports),
+
+            const SizedBox(height: 24),
+
+            // NUEVA SECCIÓN: ACTIVIDADES DE OCIO
+            _buildSectionHeader("Actividades de Ocio"),
+            if (editing) ...[
+              _buildMultiSelectDropdown(
+                "Ocio Principal",
+                _selectedOcioPrincipal,
+                _actividadesOcioOpciones,
+                Icons.local_bar,
+                (newValue) {
+                  setState(() {
+                    _selectedOcioPrincipal = newValue;
+                    _agregarActividadOcio(newValue ?? '', 'Principal');
+                  });
+                },
+              ),
+              _buildMultiSelectDropdown(
+                "Ocio Secundaria",
+                _selectedOcioSecundaria,
+                _actividadesOcioOpciones,
+                Icons.restaurant,
+                (newValue) {
+                  setState(() {
+                    _selectedOcioSecundaria = newValue;
+                    _agregarActividadOcio(newValue ?? '', 'Secundaria');
+                  });
+                },
+              ),
+              _buildMultiSelectDropdown(
+                "Ocio Terciaria",
+                _selectedOcioTerciaria,
+                _actividadesOcioOpciones,
+                Icons.games,
+                (newValue) {
+                  setState(() {
+                    _selectedOcioTerciaria = newValue;
+                    _agregarActividadOcio(newValue ?? '', 'Terciaria');
+                  });
+                },
+              ),
+            ] else
+              _buildStaticListInfo("Actividades de Ocio", _actividadesOcioUsuario, Icons.local_bar),
+
+            const SizedBox(height: 24),
+
+            // NUEVA SECCIÓN: ACTIVIDADES CULTURALES
+            _buildSectionHeader("Actividades Culturales"),
+            if (editing) ...[
+              _buildMultiSelectDropdown(
+                "Cultural Principal",
+                _selectedCulturalPrincipal,
+                _actividadesCulturalesOpciones,
+                Icons.palette,
+                (newValue) {
+                  setState(() {
+                    _selectedCulturalPrincipal = newValue;
+                    _agregarActividadCultural(newValue ?? '', 'Principal');
+                  });
+                },
+              ),
+              _buildMultiSelectDropdown(
+                "Cultural Secundaria",
+                _selectedCulturalSecundaria,
+                _actividadesCulturalesOpciones,
+                Icons.music_note,
+                (newValue) {
+                  setState(() {
+                    _selectedCulturalSecundaria = newValue;
+                    _agregarActividadCultural(newValue ?? '', 'Secundaria');
+                  });
+                },
+              ),
+              _buildMultiSelectDropdown(
+                "Cultural Terciaria",
+                _selectedCulturalTerciaria,
+                _actividadesCulturalesOpciones,
+                Icons.theater_comedy,
+                (newValue) {
+                  setState(() {
+                    _selectedCulturalTerciaria = newValue;
+                    _agregarActividadCultural(newValue ?? '', 'Terciaria');
+                  });
+                },
+              ),
+            ] else
+              _buildStaticListInfo("Actividades Culturales", _actividadesCulturalesUsuario, Icons.palette),
+
+            const SizedBox(height: 24),
+
+            // NUEVA SECCIÓN: INSTITUCIÓN DE EMERGENCIA
+            _buildSectionHeader("Institución de Emergencia"),
+            _buildField(
+              "En caso de emergencia urgente a qué institución se canaliza",
+              _institucionEmergenciaController,
+              editing,
+              Icons.local_hospital,
+            ),
+
+            const SizedBox(height: 24),
+
+            // NUEVA SECCIÓN: TÉRMINOS Y CONDICIONES
+            _buildSectionHeader("Términos y Condiciones"),
+            if (editing) ...[
+              _buildCheckboxField(
+                "Aviso de Privacidad",
+                _avisoPrivacidad,
+                Icons.privacy_tip,
+                (newValue) {
+                  setState(() {
+                    _avisoPrivacidad = newValue ?? false;
+                  });
+                },
+              ),
+              _buildCheckboxField(
+                "Reglamento del Club",
+                _reglamentoAceptado,
+                Icons.gavel,
+                (newValue) {
+                  setState(() {
+                    _reglamentoAceptado = newValue ?? false;
+                  });
+                },
+              ),
+              _buildCheckboxField(
+                "Términos de Emergencia",
+                _terminosEmergencia,
+                Icons.medical_services,
+                (newValue) {
+                  setState(() {
+                    _terminosEmergencia = newValue ?? false;
+                  });
+                },
+              ),
+            ] else ...[
+              if (_avisoPrivacidad) _buildStaticInfo("Aviso de Privacidad", "Aceptado", Icons.privacy_tip),
+              if (_reglamentoAceptado) _buildStaticInfo("Reglamento del Club", "Aceptado", Icons.gavel),
+              if (_terminosEmergencia) _buildStaticInfo("Términos de Emergencia", "Aceptado", Icons.medical_services),
+            ],
+
             const SizedBox(height: 32),
           ],
         ),
@@ -926,12 +1595,45 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  // NUEVO MÉTODO PARA CAMPOS EN MAYÚSCULAS
+  Widget _buildUppercaseField(
+    String label,
+    TextEditingController controller,
+    bool editable,
+    IconData icon,
+  ) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: editable
+          ? TextFormField(
+              controller: controller,
+              textCapitalization: TextCapitalization.characters,
+              inputFormatters: [
+                UpperCaseTextFormatter(),
+              ],
+              decoration: InputDecoration(
+                labelText: label,
+                prefixIcon: Icon(icon),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                labelStyle: const TextStyle(fontSize: 16),
+              ),
+            )
+          : _buildStaticInfo(
+              label,
+              controller.text.isNotEmpty ? controller.text : "No especificado",
+              icon,
+            ),
+    );
+  }
+
   Widget _buildAlcaldiaDropdown() {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: DropdownButtonFormField<String>(
-        // CORREGIDO: Usar initialValue en lugar de value
-        initialValue: _selectedAlcaldia,
+        isExpanded: true,
+        value: _selectedAlcaldia,
         decoration: InputDecoration(
           labelText: "Alcaldía/Municipio",
           prefixIcon: const Icon(Icons.account_balance),
@@ -946,9 +1648,26 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 )
               : null,
+          labelStyle: const TextStyle(fontSize: 16, color: Colors.black87),
         ),
+        style: const TextStyle(fontSize: 16, color: Colors.black87),
+        dropdownColor: Colors.white,
+        icon: const Icon(Icons.arrow_drop_down, color: Colors.grey, size: 28),
+        iconSize: 28,
+        elevation: 2,
+        borderRadius: BorderRadius.circular(12),
         items: _alcaldiasOpciones.map((String value) {
-          return DropdownMenuItem<String>(value: value, child: Text(value));
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Container(
+              width: double.infinity,
+              child: Text(
+                value,
+                style: const TextStyle(fontSize: 16),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          );
         }).toList(),
         onChanged: _onAlcaldiaChanged,
       ),
@@ -959,8 +1678,8 @@ class _ProfilePageState extends State<ProfilePage> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: DropdownButtonFormField<Map<String, dynamic>>(
-        // CORREGIDO: Usar initialValue en lugar de value
-        initialValue: _selectedColonia,
+        isExpanded: true,
+        value: _selectedColonia,
         decoration: InputDecoration(
           labelText: "Colonia",
           prefixIcon: const Icon(Icons.home),
@@ -975,19 +1694,34 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 )
               : null,
+          labelStyle: const TextStyle(fontSize: 16, color: Colors.black87),
         ),
+        style: const TextStyle(fontSize: 16, color: Colors.black87),
+        dropdownColor: Colors.white,
+        icon: const Icon(Icons.arrow_drop_down, color: Colors.grey, size: 28),
+        iconSize: 28,
+        elevation: 2,
+        borderRadius: BorderRadius.circular(12),
         items: _coloniasOpciones.map((Map<String, dynamic> colonia) {
           return DropdownMenuItem<Map<String, dynamic>>(
             value: colonia,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(colonia['colonia'] ?? ''),
-                Text(
-                  "CP: ${colonia['cp'] ?? ''}",
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
+            child: Container(
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    colonia['colonia'] ?? '',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  Text(
+                    "CP: ${colonia['cp'] ?? ''}",
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           );
         }).toList(),
@@ -1006,17 +1740,108 @@ class _ProfilePageState extends State<ProfilePage> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: DropdownButtonFormField<String>(
-        // CORREGIDO: Usar initialValue en lugar de value
-        initialValue: selectedValue,
+        isExpanded: true,
+        value: selectedValue,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          labelStyle: const TextStyle(fontSize: 16, color: Colors.black87),
         ),
+        style: const TextStyle(fontSize: 16, color: Colors.black87),
+        dropdownColor: Colors.white,
+        icon: const Icon(Icons.arrow_drop_down, color: Colors.grey, size: 28),
+        iconSize: 28,
+        elevation: 2,
+        borderRadius: BorderRadius.circular(12),
         items: options.map((String value) {
-          return DropdownMenuItem<String>(value: value, child: Text(value));
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Container(
+              width: double.infinity,
+              child: Text(
+                value,
+                style: const TextStyle(fontSize: 16),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          );
         }).toList(),
         onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildMultiSelectDropdown(
+    String label,
+    String? selectedValue,
+    List<String> options,
+    IconData icon,
+    ValueChanged<String?> onChanged,
+  ) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: DropdownButtonFormField<String>(
+        isExpanded: true,
+        value: selectedValue?.isEmpty ?? true ? null : selectedValue,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          labelStyle: const TextStyle(fontSize: 16, color: Colors.black87),
+        ),
+        style: const TextStyle(fontSize: 16, color: Colors.black87),
+        dropdownColor: Colors.white,
+        icon: const Icon(Icons.arrow_drop_down, color: Colors.grey, size: 28),
+        iconSize: 28,
+        elevation: 2,
+        borderRadius: BorderRadius.circular(12),
+        items: [
+          DropdownMenuItem<String>(
+            value: null,
+            child: Text(
+              'Seleccionar',
+              style: const TextStyle(color: Colors.grey, fontSize: 16),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          ...options.map((String value) {
+            return DropdownMenuItem<String>(
+              value: value,
+              child: Container(
+                width: double.infinity,
+                child: Text(
+                  value,
+                  style: const TextStyle(fontSize: 16),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            );
+          })
+        ],
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildCheckboxField(
+    String label,
+    bool value,
+    IconData icon,
+    ValueChanged<bool?> onChanged,
+  ) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: CheckboxListTile(
+        title: Text(
+          label,
+          style: const TextStyle(fontFamily: 'Montserrat', fontSize: 16),
+        ),
+        value: value,
+        onChanged: onChanged,
+        secondary: Icon(icon),
+        controlAffinity: ListTileControlAffinity.leading,
       ),
     );
   }
@@ -1033,9 +1858,9 @@ class _ProfilePageState extends State<ProfilePage> {
               title,
               style: const TextStyle(
                 fontFamily: 'Montserrat',
-                fontSize: 16,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Color.fromRGBO(25, 118, 210, 1),
+                color: Color(0xFF1976D2),
               ),
             ),
           ),
@@ -1056,14 +1881,14 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             Row(
               children: [
-                Icon(icon, color: const Color.fromRGBO(25, 118, 210, 1)),
+                Icon(icon, color: const Color(0xFF1976D2)),
                 const SizedBox(width: 8),
                 Text(
                   title,
                   style: const TextStyle(
                     fontFamily: 'Montserrat',
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 18,
                   ),
                 ),
               ],
@@ -1089,6 +1914,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 fontFamily: 'Montserrat',
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
+                fontSize: 14,
               ),
             ),
           ),
@@ -1099,6 +1925,7 @@ class _ProfilePageState extends State<ProfilePage> {
               style: const TextStyle(
                 fontFamily: 'Montserrat',
                 color: Colors.black54,
+                fontSize: 14,
               ),
             ),
           ),
@@ -1112,12 +1939,12 @@ class _ProfilePageState extends State<ProfilePage> {
       margin: const EdgeInsets.symmetric(vertical: 6),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color.fromRGBO(227, 242, 253, 1),
+        color: const Color(0xFFE3F2FD),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          Icon(icon, color: const Color.fromRGBO(13, 71, 161, 1)),
+          Icon(icon, color: const Color(0xFF0D47A1)),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -1128,18 +1955,32 @@ class _ProfilePageState extends State<ProfilePage> {
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontFamily: "Montserrat",
-                    color: Color.fromRGBO(13, 71, 161, 1),
+                    color: Color(0xFF0D47A1),
+                    fontSize: 14,
                   ),
                 ),
                 Text(
                   value.isNotEmpty ? value : "No especificado",
-                  style: const TextStyle(fontFamily: "Montserrat"),
+                  style: const TextStyle(fontFamily: "Montserrat", fontSize: 14),
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStaticListInfo(String label, List<String> items, IconData icon) {
+    final displayItems = items.map((item) {
+      final parts = item.split(':');
+      return parts.length > 1 ? '${parts[0]}: ${parts[1]}' : item;
+    }).toList();
+
+    return _buildStaticInfo(
+      label,
+      displayItems.isNotEmpty ? displayItems.join('\n') : 'No especificado',
+      icon,
     );
   }
 
@@ -1160,7 +2001,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                labelStyle: const TextStyle(fontSize: 16),
               ),
+              style: const TextStyle(fontSize: 16),
             )
           : _buildStaticInfo(
               label,
@@ -1180,7 +2023,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 13), // 0.05 opacity = 13/255
+            color: const Color(0x0D000000),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -1190,7 +2033,7 @@ class _ProfilePageState extends State<ProfilePage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         currentIndex: _selectedIndex,
-        selectedItemColor: const Color.fromRGBO(25, 118, 210, 1),
+        selectedItemColor: const Color(0xFF1976D2),
         unselectedItemColor: Colors.grey,
         onTap: _navigateToPage,
         items: const [
@@ -1241,16 +2084,6 @@ class _ProfilePageState extends State<ProfilePage> {
         (route) => false,
       );
     }
-  }
-
-  void _logout() async {
-    _logger.i('Usuario cerrando sesión: ${widget.email}');
-    await SessionManager.logout();
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const WelcomePage()),
-      (route) => false,
-    );
   }
 
   Future<void> _pickImage() async {
